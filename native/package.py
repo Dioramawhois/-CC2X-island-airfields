@@ -7,7 +7,8 @@
 dist/Island Airfields/
     mod.xml, thumbnail.png
     content/scripts/*.lua          the game's screens + our changes (lua/build_lua.py)
-    cc2x/cc2x_island_airfields.dll the plugin; CC2X 0.3+ loads it when the mod is enabled
+    content/cc2x/cc2x_island_airfields.dll   the plugin; CC2X 0.3+ loads it when the mod is enabled
+                                   (inside content: the game's Workshop upload takes only content)
 """
 import argparse
 import os
@@ -35,12 +36,12 @@ def main():
     if out.exists():
         shutil.rmtree(out)
     (out / 'content' / 'scripts').mkdir(parents=True)
-    (out / 'cc2x').mkdir()
+    (out / 'content' / 'cc2x').mkdir()
     shutil.copy2(ROOT / 'mod.xml', out / 'mod.xml')
     shutil.copy2(ROOT / 'thumbnail.png', out / 'thumbnail.png')
     for lua in sorted((ROOT / 'content' / 'scripts').glob('*.lua')):
         shutil.copy2(lua, out / 'content' / 'scripts' / lua.name)
-    shutil.copy2(ROOT / 'native' / 'dist' / 'cc2x_island_airfields.dll', out / 'cc2x' / 'cc2x_island_airfields.dll')
+    shutil.copy2(ROOT / 'native' / 'dist' / 'cc2x_island_airfields.dll', out / 'content' / 'cc2x' / 'cc2x_island_airfields.dll')
     for f in sorted(out.rglob('*')):
         if f.is_file():
             print('  %-50s %8d' % (f.relative_to(out).as_posix(), f.stat().st_size))
