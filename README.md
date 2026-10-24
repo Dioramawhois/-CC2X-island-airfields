@@ -15,7 +15,8 @@ Needs the CC2X SDK next to this repository (`../cc2x`, see `cc2x-sdk.json`) and 
    After editing `content/scripts`, `python lua/build_lua.py --diff` rewrites the patches.
 2. `python native/build.py` - builds the plugin `cc2x_island_airfields.dll`.
 
-`native/tools` holds the developer tools (live state, traces, the acceptance test `fd_test.py`).
+`native/package.py` builds the finished mod folder. Developer notes, tools and testing:
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
