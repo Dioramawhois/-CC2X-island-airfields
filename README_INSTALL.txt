@@ -7,7 +7,8 @@ hangars (repair, fuel, ammo) and take off again on a new order.
 INSTALL
 
 1. CC2X, once (skip if you already have it):
-   - download dinput8.dll from the CC2X page (link on the Workshop page)
+   - download dinput8.dll:
+     https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll
    - Steam: right-click Carrier Command 2 > Manage > Browse local files
    - put dinput8.dll into that folder
 

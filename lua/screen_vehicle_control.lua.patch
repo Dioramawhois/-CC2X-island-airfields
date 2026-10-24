@@ -110,8 +110,8 @@
 +-- [my_mod] Without CC2X the mod can only show markers. Say what is missing, on the map itself.
 +function mm_draw_cc2x_notice(screen_w, screen_h)
 +    if mm_plugin() ~= nil then return end
-+    local line = "Island Airfields needs CC2X: put its dinput8.dll into the game folder (see the mod page)"
-+    if cc2x ~= nil then line = "Island Airfields needs a newer CC2X: replace dinput8.dll in the game folder (see the mod page)" end
++    local line = "Island Airfields needs CC2X: put dinput8.dll from github.com/Dioramawhois/cc2x into the game folder"
++    if cc2x ~= nil then line = "Island Airfields needs a newer CC2X: get dinput8.dll again from github.com/Dioramawhois/cc2x" end
 +    update_ui_rectangle(0, screen_h - 13, screen_w, 13, color8(0, 0, 0, 220))
 +    update_ui_text(4, screen_h - 11, line, screen_w - 8, 0, color8(255, 190, 0, 255), 0)
 +end
