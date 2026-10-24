@@ -17,8 +17,8 @@ import struct
 import sys
 import time
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'legacy'))
-import cc2_airfields as T   # noqa: E402  (process / memory helpers)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import proc as T   # noqa: E402  (process / memory helpers)
 
 PLUGIN_DLL = 'cc2x_island_airfields.dll'
 EXPORT = b'cc2x_island_airfields_debug'
