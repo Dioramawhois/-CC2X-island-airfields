@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data name="Island Airfields" author="dioramawork" description="
+Experimental v44 release candidate. Planes and helicopters can land on your captured islands, use hangars for repair, refuelling and rearming, and take off again on a new order.
+
+Ground taxiing is unfinished: aircraft are repositioned between the runway or pad and the hangar. Fixed-wing aircraft and flight assistance are enabled in the candidate settings.
+
+Requires the matching CC2X extender and plugin from the release ZIP (dinput8.dll and cc2x_island_airfields.dll in the game folder). Without them only map markers and ordinary waypoints are available.
+
+Windows game version 1.5.18. Single player; multiplayer not release-tested. No VR or dedicated server support.
+">
+</data>

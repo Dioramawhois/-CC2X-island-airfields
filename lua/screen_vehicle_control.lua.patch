@@ -1,0 +1,287 @@
+--- game/screen_vehicle_control.lua
++++ mod/screen_vehicle_control.lua
+@@ -976,11 +976,13 @@
+     g_ui = lib_imgui:create_ui()
+ end
+ 
+-function update(screen_w, screen_h, ticks) 
++function update(screen_w, screen_h, ticks)
+     g_screen_w = screen_w
+     g_screen_h = screen_h
+     g_is_mouse_mode = g_is_pointer_hovered and update_get_active_input_type() == e_active_input.keyboard
+     g_animation_time = g_animation_time + ticks
++
++    mm_self_test_tick()
+ 
+     local screen_vehicle = update_get_screen_vehicle()
+     local screen_team = update_get_screen_team_id()
+@@ -1310,6 +1312,25 @@
+             end
+         end
+ 
++        -- [my_mod] Airfield icon on own islands (command-centre position, static). With the native patch
++        -- running only islands with a real runway are marked; without it every captured island is.
++        do
++            local mm_my_team = update_get_screen_team_id()
++            local mm_alpha = 200
++            local mm_n = update_get_tile_count()
++
++            for i = 0, mm_n - 1 do
++                local island = update_get_tile_by_index(i)
++                if island:get() and island:get_team_control() == mm_my_team and mm_is_marked_airfield(island) then
++                    local base = update_get_team_color(mm_my_team)
++                    local col = color8(base:r(), base:g(), base:b(), math.floor(mm_alpha * mm_marker_alpha_factor(island)))
++                    local wx, wy = mm_island_pos(island)
++                    local sx, sy = get_screen_from_world(wx, wy, g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
++                    update_ui_image(sx - 8, sy - 8, atlas_icons.map_icon_factory_chassis_air, col, 0)
++                end
++            end
++        end
++
+         -- render grid
+ 
+         if g_is_render_grid and g_map_render_mode == 1 then
+@@ -1545,6 +1566,31 @@
+ 
+                                         render_dashed_line(screen_pos_x, screen_pos_y, parent_screen_pos_x, parent_screen_pos_y, waypoint_color)
+                                     end
++                                end
++
++                                -- [my_mod] island airfield status: dashed line to the airfield while queued for landing,
++                                -- ring around aircraft parked in an island hangar (drag a waypoint from it to launch)
++                                if is_render_vehicle_icon and mm_is_queued_at_airfield(vehicle) then
++                                    local mm_island = nil
++                                    local mm_island_id = g_mm_landing_orders[vehicle:get_id()]
++
++                                    if mm_island_id ~= nil then
++                                        mm_island = update_get_tile_by_id(mm_island_id)
++                                    end
++
++                                    if mm_island == nil or mm_island:get() == false then
++                                        mm_island = mm_find_landing_island(vehicle_pos_xz:x(), vehicle_pos_xz:y(), 1000000.0)
++                                    end
++
++                                    if mm_island ~= nil and mm_island:get() then
++                                        local mm_x, mm_y = mm_island_pos(mm_island)
++                                        local mm_sx, mm_sy = get_screen_from_world(mm_x, mm_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
++                                        render_dashed_line(screen_pos_x, screen_pos_y, mm_sx, mm_sy, waypoint_color)
++                                        update_ui_image(mm_sx - 4, mm_sy - 4, atlas_icons.map_icon_waypoint, waypoint_color, 0)
++                                    end
++                                elseif is_render_vehicle_icon and mm_is_parked_at_airfield(vehicle) then
++                                    local mm_base = update_get_team_color(vehicle_team)
++                                    update_ui_circle(screen_pos_x, screen_pos_y, 7, 12, color8(mm_base:r(), mm_base:g(), mm_base:b(), 200))
+                                 end
+ 
+                                 local function render_resupply_link(vehicle_from, vehicle_to, is_resupplying)
+@@ -2393,6 +2439,165 @@
+     end
+ end
+ 
++-- [my_mod] Best-effort airbase anchor for an island: command centre if present, else island centre.
++-- (Lua has no runway position, so the command centre is used as the anchor of the marker.)
++function mm_island_pos(island)
++    if island:get_command_center_count() > 0 then
++        local p = island:get_command_center_position(0)
++        return p:x(), p:y()
++    end
++
++    local p = island:get_position_xz()
++    return p:x(), p:y()
++end
++
++-- [my_mod] Bridge to the Island Airfields plugin of CC2X (cc2x_island_airfields.dll next to the
++-- game exe, loaded by the CC2X extender dinput8.dll). Without them every call below falls back to
++-- the plain game: markers on all captured islands, ordinary waypoints.
++MM_LANDING_RADIUS = 3000.0
++
++function mm_plugin()
++    return cc2x and cc2x.island_airfields
++end
++
++-- airfield count (>= 0), -1 = plugin active but not known yet, nil = plugin not active
++function mm_airfield_count(island)
++    local p = mm_plugin()
++    if p == nil then return nil end
++    local n = p.count(island:get_id())
++    if n == nil then return -1 end
++    return n
++end
++
++-- true when the plugin answers for this island (landing orders will be honoured)
++function mm_is_native(island)
++    return mm_plugin() ~= nil
++end
++
++-- can this aircraft land on an island airfield? (fixed-wing only with experimental_planes=1)
++function mm_can_land(vehicle)
++    local p = mm_plugin()
++    if p == nil then return false end
++    local def = vehicle:get_definition_index()
++    if def == e_game_object_type.chassis_air_wing_light or def == e_game_object_type.chassis_air_wing_heavy then
++        return p.planes()
++    end
++    return get_is_vehicle_air(def)
++end
++
++-- Should the airfield marker be drawn on this (own) island?
++-- Patch active: only islands that really have a runway (unknown islands - not loaded yet in this
++-- session - are marked too, dimmed). No patch: every captured island (best effort).
++function mm_is_marked_airfield(island)
++    local n = mm_airfield_count(island)
++
++    if n == nil or n < 0 then return true end
++    return n > 0
++end
++
++-- 1 for a confirmed airfield (or no patch), 0.35 when the patch does not know the island yet
++function mm_marker_alpha_factor(island)
++    local n = mm_airfield_count(island)
++
++    if n ~= nil and n < 0 then return 0.35 end
++    return 1
++end
++
++-- [my_mod] Self-test hook for native/tools (plugin test channel). Does nothing unless a tool hands
++-- out a command; then it gives the same orders the map does.
++function mm_self_test_tick()
++    local p = mm_plugin()
++    if p == nil then return end
++    local cmd, vehicle_id, tile_id, x, y = p.test_poll()
++    if cmd == nil then return end
++
++    local vehicle = update_get_map_vehicle_by_id(vehicle_id)
++    if vehicle:get() == false then return end
++
++    vehicle:clear_waypoints()
++    vehicle:clear_attack_target()
++    local waypoint_id = vehicle:add_waypoint(x, y)
++
++    if cmd == 2 then
++        vehicle:set_waypoint_type_barge_load_tile(waypoint_id, tile_id)
++        g_mm_landing_orders[vehicle_id] = tile_id
++    elseif cmd == 3 then
++        vehicle:set_target_vehicle(waypoint_id, tile_id)    -- tile_id carries the carrier id here
++    end
++end
++
++-- [my_mod] Nearest own island with an airfield within max_dist of a world point.
++-- Returns island, anchor x, anchor y (or nil).
++function mm_find_landing_island(world_x, world_y, max_dist)
++    local screen_team = update_get_screen_team_id()
++    local count = update_get_tile_count()
++    local best, best_x, best_y, best_d = nil, 0, 0, max_dist
++
++    for i = 0, count - 1 do
++        local island = update_get_tile_by_index(i)
++
++        if island:get() and island:get_team_control() == screen_team and mm_is_marked_airfield(island) then
++            local px, py = mm_island_pos(island)
++            local dx = px - world_x
++            local dy = py - world_y
++            local d = math.sqrt(dx * dx + dy * dy)
++
++            if d < best_d then
++                best_d = d
++                best = island
++                best_x = px
++                best_y = py
++            end
++        end
++    end
++
++    return best, best_x, best_y
++end
++
++-- [my_mod] vehicle id -> island id of the last landing order given from this screen
++g_mm_landing_orders = {}
++
++-- [my_mod] Drop-in replacement for vehicle:add_waypoint(x, y) used by the map controls.
++-- A flying aircraft with no other waypoints sent near an own airfield gets a landing order: the
++-- waypoint is typed barge_load_tile with the island id, which the native patch turns into a real
++-- landing (queue -> approach -> runway -> hangar, then repair/refuel/rearm). Anything else, or no
++-- native patch, is an ordinary waypoint.
++function mm_add_waypoint(vehicle, world_x, world_y)
++    if vehicle and vehicle:get()
++        and mm_can_land(vehicle)
++        and vehicle:get_dock_state() == e_vehicle_dock_state.undocked
++        and vehicle:get_waypoint_count() == 0 then
++        local island, ax, ay = mm_find_landing_island(world_x, world_y, MM_LANDING_RADIUS)
++
++        if island ~= nil and mm_is_native(island) then
++            local waypoint_id = vehicle:add_waypoint(ax, ay)
++            vehicle:set_waypoint_type_barge_load_tile(waypoint_id, island:get_id())
++            g_mm_landing_orders[vehicle:get_id()] = island:get_id()
++            return waypoint_id
++        end
++    end
++
++    return vehicle:add_waypoint(world_x, world_y)
++end
++
++-- [my_mod] Aircraft parked in an island hangar (docked but not attached to a carrier).
++-- Dragging a waypoint from it makes the native patch launch it from the island runway.
++function mm_is_parked_at_airfield(vehicle)
++    return get_is_vehicle_air(vehicle:get_definition_index())
++        and vehicle:get_dock_state() == e_vehicle_dock_state.docked
++        and vehicle:get_attached_parent_id() == 0
++end
++
++-- [my_mod] Aircraft landing on an island: queued or on the approach, not for a carrier.
++-- Until it is parked a new waypoint cancels the landing.
++function mm_is_queued_at_airfield(vehicle)
++    local state = vehicle:get_dock_state()
++    return get_is_vehicle_air(vehicle:get_definition_index())
++        and (state == e_vehicle_dock_state.dock_queue or state == e_vehicle_dock_state.docking)
++        and vehicle:get_dock_queue_vehicle_id() == 0
++        and vehicle:get_attached_parent_id() == 0
++end
++
+ function input_event(event, action)
+     if event == e_input.pointer_1 then
+         g_is_pointer_pressed = action == e_input_action.press
+@@ -2417,7 +2622,9 @@
+                         if child_vehicle:get() and get_is_vehicle_waypoint_available(child_vehicle) then
+                             child_vehicle:clear_waypoints()
+                             child_vehicle:clear_attack_target()
+-                            child_vehicle:add_waypoint(world_x, world_y)
++
++                            -- [my_mod] aircraft sent near an own airfield get a landing order
++                            mm_add_waypoint(child_vehicle, world_x, world_y)
+                         end
+ 
+                         g_selected_child_vehicle_id = 0
+@@ -2558,14 +2765,14 @@
+                                                             local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
+                                 
+                                                             drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
+-                                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                                         elseif g_drag.vehicle_id > 0 then
+                                                             -- add waypoint to vehicle
+                                 
+                                                             local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
+                                                             drag_vehicle:clear_waypoints()
+                                                             drag_vehicle:clear_attack_target()
+-                                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                                         end
+                                                     else
+                                                         -- add a support waypoint to friendly vehicle
+@@ -2622,7 +2829,7 @@
+                                         local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
+             
+                                         drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
+-                                        drag_vehicle:add_waypoint(world_x, world_y)
++                                        mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                     elseif g_drag.vehicle_id > 0 then
+                                         -- add waypoint to vehicle
+             
+@@ -2631,7 +2838,7 @@
+ 
+                                             drag_vehicle:clear_waypoints()
+                                             drag_vehicle:clear_attack_target()
+-                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                         end
+                                     end
+                                 end

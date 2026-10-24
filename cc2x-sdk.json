@@ -1,0 +1,8 @@
+{
+  "sdk": "CC2X",
+  "tested_version": "0.2.0",
+  "api_version": 1,
+  "default_directory": "../cc2x",
+  "override_argument": "--sdk",
+  "override_environment": "CC2X_SDK_DIR"
+}
