@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <data name="Island Airfields" author="dioramawork" description="
-Experimental v44 release candidate. Planes and helicopters can land on your captured islands, use hangars for repair, refuelling and rearming, and take off again on a new order.
+Land your planes and helicopters on the airfields of your captured islands. They park in the hangars, get repaired, refuelled and rearmed, and take off again when you give them a new order.
 
-Ground taxiing is unfinished: aircraft are repositioned between the runway or pad and the hangar. Fixed-wing aircraft and flight assistance are enabled in the candidate settings.
+How to land: give a flying aircraft one waypoint on your island with an airfield.
+How to take off: give a parked aircraft a new waypoint.
 
-Requires the matching CC2X extender and plugin from the release ZIP (dinput8.dll and cc2x_island_airfields.dll in the game folder). Without them only map markers and ordinary waypoints are available.
+Needs CC2X (one file, once): put dinput8.dll from CC2X into the game folder - see the mod page. Without it the map shows a yellow line saying so.
 
-Windows game version 1.5.18. Single player; multiplayer not release-tested. No VR or dedicated server support.
+Version 1.0. Windows, game version 1.5.18, single player.
 ">
 </data>

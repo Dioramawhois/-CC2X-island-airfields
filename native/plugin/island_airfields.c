@@ -13,9 +13,11 @@
  * flies every player aircraft that lands on or takes off from an island airfield itself (H5: the
  * flight director - the vanilla island airfield code is unfinished for player aircraft).
  *
- * Settings: cc2x_island_airfields.ini next to the dll
+ * Installed as part of the mod: <mod folder>\cc2x\cc2x_island_airfields.dll, loaded by CC2X 0.3+
+ * when the mod is enabled in the game's mod menu. No settings are needed; optionally
+ * %APPDATA%\Carrier Command 2\cc2x\island_airfields.ini
  *     [island_airfields]
- *     experimental_planes=0   ; 1 = let fixed-wing aircraft land too
+ *     planes=1                ; 0 = helicopters only
  *     plane_assist=1          ; 0 = leave planes to the vanilla airfield code (they crash)
  *
  * Tested (v44, save "Test 1"): takeoff + landing of light/heavy planes and helicopters on three
@@ -1350,9 +1352,11 @@ CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
     if (api->api_version < CC2X_API_VERSION || strcmp(api->game_build, "1.5.18-win32")) return 0;
     A = api;
     InitializeCriticalSection(&g_table_cs);
-    char ini[MAX_PATH];
-    snprintf(ini, sizeof(ini), "%s\\cc2x_island_airfields.ini", api->game_dir);
-    g_planes = GetPrivateProfileIntA("island_airfields", "experimental_planes", 0, ini);
+    /* optional settings, kept where mod updates do not overwrite them:
+     * %APPDATA%\Carrier Command 2\cc2x\island_airfields.ini   [island_airfields] planes=0 -> helicopters only */
+    char ini[MAX_PATH * 2];
+    snprintf(ini, sizeof(ini), "%s\\island_airfields.ini", api->config_dir);
+    g_planes = GetPrivateProfileIntA("island_airfields", "planes", 1, ini);
     g_plane_assist = GetPrivateProfileIntA("island_airfields", "plane_assist", 1, ini);
 
     static const uint8_t h1[] = {0xff, 0xb0, 0x50, 0x01, 0x00, 0x00};

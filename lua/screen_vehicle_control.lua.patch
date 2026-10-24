@@ -73,7 +73,16 @@
                                  end
  
                                  local function render_resupply_link(vehicle_from, vehicle_to, is_resupplying)
-@@ -2393,6 +2439,165 @@
+@@ -2282,6 +2328,8 @@
+         end
+     end
+ 
++    mm_draw_cc2x_notice(screen_w, screen_h)
++
+     g_ui:end_ui()
+ 
+     g_pointer_pos_x_prev = g_pointer_pos_x
+@@ -2393,6 +2441,174 @@
      end
  end
  
@@ -96,6 +105,15 @@
 +
 +function mm_plugin()
 +    return cc2x and cc2x.island_airfields
++end
++
++-- [my_mod] Without CC2X the mod can only show markers. Say what is missing, on the map itself.
++function mm_draw_cc2x_notice(screen_w, screen_h)
++    if mm_plugin() ~= nil then return end
++    local line = "Island Airfields needs CC2X: put its dinput8.dll into the game folder (see the mod page)"
++    if cc2x ~= nil then line = "Island Airfields needs a newer CC2X: replace dinput8.dll in the game folder (see the mod page)" end
++    update_ui_rectangle(0, screen_h - 13, screen_w, 13, color8(0, 0, 0, 220))
++    update_ui_text(4, screen_h - 11, line, screen_w - 8, 0, color8(255, 190, 0, 255), 0)
 +end
 +
 +-- airfield count (>= 0), -1 = plugin active but not known yet, nil = plugin not active
@@ -239,7 +257,7 @@
  function input_event(event, action)
      if event == e_input.pointer_1 then
          g_is_pointer_pressed = action == e_input_action.press
-@@ -2417,7 +2622,9 @@
+@@ -2417,7 +2633,9 @@
                          if child_vehicle:get() and get_is_vehicle_waypoint_available(child_vehicle) then
                              child_vehicle:clear_waypoints()
                              child_vehicle:clear_attack_target()
@@ -250,7 +268,7 @@
                          end
  
                          g_selected_child_vehicle_id = 0
-@@ -2558,14 +2765,14 @@
+@@ -2558,14 +2776,14 @@
                                                              local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
                                  
                                                              drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -267,7 +285,7 @@
                                                          end
                                                      else
                                                          -- add a support waypoint to friendly vehicle
-@@ -2622,7 +2829,7 @@
+@@ -2622,7 +2840,7 @@
                                          local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
              
                                          drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -276,7 +294,7 @@
                                      elseif g_drag.vehicle_id > 0 then
                                          -- add waypoint to vehicle
              
-@@ -2631,7 +2838,7 @@
+@@ -2631,7 +2849,7 @@
  
                                              drag_vehicle:clear_waypoints()
                                              drag_vehicle:clear_attack_target()
