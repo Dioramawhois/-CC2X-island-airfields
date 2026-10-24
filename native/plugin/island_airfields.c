@@ -13,7 +13,7 @@
  * flies every player aircraft that lands on or takes off from an island airfield itself (H5: the
  * flight director - the vanilla island airfield code is unfinished for player aircraft).
  *
- * Installed as part of the mod: <mod folder>\content\cc2x\cc2x_island_airfields.dll, loaded by CC2X 0.3+
+ * Installed as part of the mod: <mod folder>\content\cc2x\cc2x_island_airfields.dll, loaded by CC2X 0.3.1+
  * when the mod is enabled in the game's mod menu. No settings are needed; optionally
  * %APPDATA%\Carrier Command 2\cc2x\island_airfields.ini
  *     [island_airfields]

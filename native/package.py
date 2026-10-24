@@ -7,7 +7,7 @@
 dist/Island Airfields/
     mod.xml, thumbnail.png
     content/scripts/*.lua          the game's screens + our changes (lua/build_lua.py)
-    content/cc2x/cc2x_island_airfields.dll   the plugin; CC2X 0.3+ loads it when the mod is enabled
+    content/cc2x/cc2x_island_airfields.dll   the plugin; CC2X 0.3.1+ loads it when the mod is enabled
                                    (inside content: the game's Workshop upload takes only content)
 """
 import argparse
