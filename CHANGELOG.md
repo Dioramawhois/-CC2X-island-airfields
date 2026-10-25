@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased (plugin v45)
+
+- The plugin uses only the public CC2X API (world API, CC2X 0.4+): no game addresses of its own.
+  Anyone can write a mod like it with the SDK. Behaviour unchanged (same acceptance tests).
+- Needs CC2X 0.4; with an older CC2X the map shows "needs a newer CC2X".
+
 ## 1.0 (2026-10-25) - first public version
 
 - Planes and helicopters land on the airfields of captured islands, are repaired, refuelled and

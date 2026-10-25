@@ -1,6 +1,6 @@
 # Island Airfields - development notes
 
-Game: Carrier Command 2 1.5.18, Windows 32-bit. Needs CC2X 0.3.1+ (`../cc2x`, see `cc2x-sdk.json`).
+Game: Carrier Command 2 1.5.18, Windows 32-bit. Needs CC2X 0.4+ (`../cc2x`, see `cc2x-sdk.json`).
 
 ## Build, install for testing
 
