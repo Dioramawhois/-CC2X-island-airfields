@@ -5,8 +5,8 @@ Land your planes and helicopters on the airfields of your captured islands. They
 How to land: give a flying aircraft one waypoint on your island with an airfield.
 How to take off: give a parked aircraft a new waypoint.
 
-Needs CC2X (one file, once): download dinput8.dll from https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll and put it into the game folder (Steam: right-click Carrier Command 2 > Manage > Browse local files). Without it the map shows a yellow line saying so.
+Needs CC2X 0.4 or newer (one file, once): download dinput8.dll from https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll and put it into the game folder (Steam: right-click Carrier Command 2 > Manage > Browse local files). Without it the map shows a yellow line saying so.
 
-Version 1.0. Windows, game version 1.5.18, single player.
+Version 1.0.1. Windows, game version 1.5.18, single player.
 ">
 </data>

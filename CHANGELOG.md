@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (plugin v45)
+## 1.0.1 (2026-10-25)
 
 - The plugin uses only the public CC2X API (world API, CC2X 0.4+): no game addresses of its own.
   Anyone can write a mod like it with the SDK. Behaviour unchanged (same acceptance tests).
