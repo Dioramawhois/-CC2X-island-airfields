@@ -1,0 +1,81 @@
+[h1]Island Airfields[/h1]
+Land your planes and helicopters on the airfields of the islands you capture. They park in the hangars, the island repairs, refuels and rearms them, and they take off again when you give them a new order. No more flying back to the carrier for every reload.
+
+[h2]What it does[/h2]
+[list]
+[*][b]Real landings.[/b] Planes fly a proper traffic pattern (downwind, base turn, final) on a terrain-aware glide path, touch down on the runway and roll out into a free hangar. Helicopters fly in to their own pads and set down vertically.
+[*][b]Hangar service.[/b] A parked aircraft is repaired, refuelled and rearmed by the island, just like on the carrier.
+[*][b]Takeoff on demand.[/b] Give a parked aircraft a new waypoint: planes roll down the runway and climb out, helicopters lift off and go.
+[*][b]Traffic control.[/b] One plane on a runway at a time; others hold beside the pattern until it is free. Helicopters do not need the runway.
+[*][b]Change of plans.[/b] A new order before touchdown cancels the landing.
+[*][b]Saves.[/b] Landings in progress continue after loading a save.
+[*][b]On the map.[/b] Your islands with airfields are marked on the map.
+[/list]
+
+[h2]How to play[/h2]
+[list]
+[*][b]Land:[/b] give a flying aircraft [b]one waypoint on your island with an airfield[/b].
+[*][b]Take off:[/b] give a parked aircraft a new waypoint.
+[*][b]Cancel:[/b] give a new order before it touches down.
+[/list]
+
+[h2]Install[/h2]
+This mod needs [b]CC2X[/b], a small mod loader (one file, installed once, also used by other mods).
+[olist]
+[*]Download [url=https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll]dinput8.dll[/url] (CC2X 0.4 or newer).
+[*]Steam: right-click Carrier Command 2 > Manage > Browse local files, and put [b]dinput8.dll[/b] into that folder.
+[*]Subscribe to this mod.
+[*]Start the game: Mods > enable Island Airfields > restart the game.
+[/olist]
+Without CC2X (or with an older one) a yellow line at the bottom of the map says what is missing.
+To remove: disable the mod (or unsubscribe); delete dinput8.dll from the game folder to remove CC2X.
+
+[h2]Settings (optional)[/h2]
+File [i]%APPDATA%\Carrier Command 2\cc2x\island_airfields.ini[/i]:
+[code]
+[island_airfields]
+planes=0    ; helicopters only
+[/code]
+
+[h2]Good to know[/h2]
+[list]
+[*]Windows, game version 1.5.18, [b]single player[/b] only.
+[*]Aircraft are moved between the runway and the hangar bay; taxiing is coming in the next version.
+[*]The mod changes the game's map and vehicle control screens (screen_holomap.lua, screen_vehicle_control.lua). Other mods that change the same screens will conflict.
+[*]Problems: attach [i]cc2x.log[/i] from the game folder to your comment.
+[/list]
+
+[h2]Open source[/h2]
+Mod: [url=https://github.com/Dioramawhois/island-airfields]github.com/Dioramawhois/island-airfields[/url]
+CC2X (loader and SDK for your own mods): [url=https://github.com/Dioramawhois/cc2x]github.com/Dioramawhois/cc2x[/url]
+License: GPL-3.0-or-later.
+
+[hr][/hr]
+
+[h1]Island Airfields (RU)[/h1]
+Самолёты и вертолёты садятся на аэродромы захваченных островов, встают в ангары, остров их чинит, заправляет и перевооружает, а по новому приказу они снова взлетают. Больше не нужно гонять каждую машину на авианосец.
+
+[h2]Что умеет[/h2]
+[list]
+[*][b]Настоящая посадка.[/b] Самолёт заходит по кругу (подветренная, четвёртый разворот, глиссада) с учётом рельефа, садится на полосу и уходит в свободный ангар. Вертолёт заходит на свою площадку и садится вертикально.
+[*][b]Обслуживание в ангаре:[/b] ремонт, топливо и боекомплект, как на авианосце.
+[*][b]Взлёт по приказу:[/b] новая точка маршрута для машины в ангаре, и она взлетает.
+[*][b]Очередь на полосу:[/b] на полосе один самолёт, остальные ждут в стороне. Вертолётам полоса не нужна.
+[*][b]Отмена:[/b] новый приказ до касания отменяет посадку.
+[*][b]Сохранения:[/b] начатые посадки продолжаются после загрузки.
+[/list]
+
+[h2]Как играть[/h2]
+[list]
+[*][b]Посадка:[/b] летящей машине поставь [b]одну точку маршрута на своём острове с аэродромом[/b].
+[*][b]Взлёт:[/b] машине в ангаре поставь новую точку.
+[/list]
+
+[h2]Установка[/h2]
+[olist]
+[*]Скачай [url=https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll]dinput8.dll[/url] (CC2X 0.4 или новее).
+[*]Steam: ПКМ по Carrier Command 2 > Управление > Просмотреть локальные файлы, положи туда [b]dinput8.dll[/b].
+[*]Подпишись на мод.
+[*]В игре: Моды > включи Island Airfields > перезапусти игру.
+[/olist]
+Только Windows, версия игры 1.5.18, одиночная игра. Руление между полосой и ангаром появится в следующей версии.
