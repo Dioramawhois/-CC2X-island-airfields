@@ -6,7 +6,9 @@ hangars (repair, fuel, ammo) and take off again on a new order.
 
 INSTALL
 
-1. CC2X, once (skip if you already have it):
+1. CC2X API 5 is required by this unreleased source (older runtimes leave the plugin inactive).
+   API 5 Windows/in-game validation is still pending; do not assume the latest public release
+   contains this local SDK change. For a validated compatible release:
    - download dinput8.dll:
      https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll
    - Steam: right-click Carrier Command 2 > Manage > Browse local files

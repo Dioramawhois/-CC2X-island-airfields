@@ -8,7 +8,11 @@ Players: see [README_INSTALL.txt](README_INSTALL.txt).
 
 ## Building
 
-Needs the CC2X SDK next to this repository (`../cc2x`, see `cc2x-sdk.json`) and the game installed.
+This unreleased source requires **CC2X API 5** headers and runtime for session-bound deferred
+landing work. Older runtimes leave the plugin inactive; there is no legacy fallback. API 5
+Windows/in-game validation is pending. The metadata's `tested_version: 0.4.0` is historical.
+Needs the SDK next to this repository (`../cc2x`, see `cc2x-sdk.json`) or an explicit SDK override,
+and the game installed for packaging.
 
 1. `python lua/build_lua.py` - builds `content/scripts/*.lua`: the game's own scripts from the
    official mod dev kit (`<game>/mod_dev_kit/source/scripts`) plus our patches `lua/*.patch`.

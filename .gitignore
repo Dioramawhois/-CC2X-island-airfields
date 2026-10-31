@@ -19,3 +19,11 @@ __pycache__/
 .vscode/
 *.bak
 content/scripts/
+
+# Vendored interpreter: fetched by lock file, not committed
+native/third_party/
+# Local build/probe artifacts (not sources)
+*.dSYM/
+*.dylib
+native/.wasm-probe*/
+native/.wasm-host-test*

@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — API 5 landing submission
+
+- Requires CC2X API 5; no fallback to legacy cross-session `server_post`.
+- Direct native Lua landing now requires `land(vehicle_id, tile_id, session_token, expected_team)`
+  and returns `accepted, reason`. Capture `session()` with the source UI data. Two-argument calls
+  fail closed. Acceptance means queued, not successful landing.
+- Deferred payload is released on execution, cancellation or enqueue rejection; cancellation
+  never accesses the world. Logic-thread execution revalidates session/server and human vehicle
+  and tile team before requesting landing. The SDK exposes no authenticated peer/host identity;
+  this trusted local Lua entry point is not an MP authorization boundary.
+- Existing UI landing waypoints are unchanged. Portable ownership tests are not Windows/in-game
+  validation. `cc2x-sdk.json.tested_version` remains the historical 0.4.0 baseline, not an API 5
+  runtime certification; no published SDK revision is pinned for this local change.
+- Flight director kinematics (runway geometry, plane flight/rollout/takeoff roll, tick length,
+  per-flight state lifecycle) moved unchanged into the platform-neutral C core
+  `native/plugin/iaf_fd_core.c`, called directly by the plugin. Bit-exact native regression
+  against the previous formulas; the DLL must now link `iaf_fd_core.c`. Not in-game validated.
+- Plane landing phase/hold/go-around/touchdown decisions now use the same production core,
+  with explicit POD observations/actions and host-ordered SDK effects. Regression vectors cover
+  admission refusal, both pattern sides, all landing phases, third-attempt abort and touchdown
+  thresholds. Preserve the original positive rotation predicate: NaN speed does not rotate.
+
 ## 1.0.1 (2026-10-25)
 
 - The plugin uses only the public CC2X API (world API, CC2X 0.4+): no game addresses of its own.

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "name": "wasm3",
+  "version": "v0.9.1-beta.1",
+  "commit": "ac3c1dd1386e83be7de548211efd02805eb1dcee",
+  "url": "https://codeload.github.com/wasm3/wasm3/tar.gz/ac3c1dd1386e83be7de548211efd02805eb1dcee",
+  "sha256": "c3ee044f23da31055e1c31b3a350dac240c93f0eed8e281739574bf754573c37",
+  "digest_assurance": "Locally computed SHA-256 after HTTPS download; not an independent publisher signature. Official commit verification is unsigned.",
+  "provenance": {
+    "checked_utc": "2026-10-31",
+    "tag_ref": "https://api.github.com/repos/wasm3/wasm3/git/ref/tags/v0.9.1-beta.1",
+    "tag_http_status": 200,
+    "tag_object_type": "commit",
+    "commit_api": "https://api.github.com/repos/wasm3/wasm3/commits/ac3c1dd1386e83be7de548211efd02805eb1dcee",
+    "commit_http_status": 200,
+    "commit_verification": "verified=false, reason=unsigned",
+    "raw_prefix": "https://raw.githubusercontent.com/wasm3/wasm3/ac3c1dd1386e83be7de548211efd02805eb1dcee/source/",
+    "raw_http_status": 200,
+    "raw_sha256_matches_vendored": {
+      "m3_env.c": "01ce473f6d27894d181d594b5deb92f571cc6fd0c08542e60778d8885a3caf45",
+      "m3_exec.h": "ccf9374cffdb4a910ca02d86947abd5688fd479067a5725aa8d358fcde2d9c3a",
+      "wasm3.h": "c0203e14df9a9ded4b6065b48de2d3d6f6f385816d04fbc9b9c9eb1ae382a83f"
+    },
+    "independent_buildworker_recheck": "Confirmed official ref and all three raw source hashes; no authentication used."
+  },
+  "license": "MIT",
+  "license_path": "third_party/wasm3/LICENSE",
+  "selection": "0.5.0 lacks official intrinsic gas-budget API. Current pinned beta has m3_SetGasLimit and full validation; metering enabled before lazy compilation. Experimental trusted developer artifact only, independent security sentinel required before distribution.",
+  "install_scope": "Project-local source vendoring only, no global or player runtime install."
+}
