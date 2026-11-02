@@ -1,6 +1,6 @@
 --- game/screen_holomap.lua
 +++ mod/screen_holomap.lua
-@@ -101,7 +101,70 @@
+@@ -101,7 +101,78 @@
      begin_load_inventory_data()
  end
  
@@ -26,10 +26,18 @@
 +    return cc2x and cc2x.island_airfields
 +end
 +
++-- Use the game's replicated waypoint orders on a remote client. Only the host runs
++-- the flight director; lack of a local DLL is not proof that the host lacks it.
++function mm_remote_host()
++    if type(update_get_is_multiplayer) ~= "function" then return false end
++    local multiplayer, host = update_get_is_multiplayer()
++    return multiplayer == true and host == false
++end
++
 +-- airfield count (>= 0), -1 = plugin active but not known yet, nil = plugin not active
 +function mm_airfield_count(island)
 +    local p = mm_plugin()
-+    if p == nil then return nil end
++    if p == nil then return mm_remote_host() and -1 or nil end
 +    local n = p.count(island:get_id())
 +    if n == nil then return -1 end
 +    return n
@@ -37,16 +45,16 @@
 +
 +-- true when the plugin answers for this island (landing orders will be honoured)
 +function mm_is_native(island)
-+    return mm_plugin() ~= nil
++    return mm_plugin() ~= nil or mm_remote_host()
 +end
 +
 +-- can this aircraft land on an island airfield? (fixed-wing only with experimental_planes=1)
 +function mm_can_land(vehicle)
 +    local p = mm_plugin()
-+    if p == nil then return false end
++    if p == nil and not mm_remote_host() then return false end
 +    local def = vehicle:get_definition_index()
 +    if def == e_game_object_type.chassis_air_wing_light or def == e_game_object_type.chassis_air_wing_heavy then
-+        return p.planes()
++        return mm_remote_host() or p.planes()
 +    end
 +    return get_is_vehicle_air(def)
 +end
@@ -72,7 +80,7 @@
      g_screen_w = screen_w
      g_screen_h = screen_h
      g_is_mouse_mode = update_get_active_input_type() == e_active_input.keyboard
-@@ -313,9 +376,28 @@
+@@ -313,9 +384,28 @@
              end
          end
  
@@ -102,3 +110,8 @@
                  g_map_size_offset, screen_w, screen_h, 2.6 / 1.6)
              end
          end
+@@ -719,3 +809,4 @@
+     g_next_pos_y = g_map_z
+     g_next_size = g_map_size
+ end
++

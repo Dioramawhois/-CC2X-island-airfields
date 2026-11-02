@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0-dev / plugin v46 (unreleased)
+
+- Requires CC2X API 5 (0.6.0-dev). Direct native landing requests are session-bound;
+  stale/absent local-server commands are rejected instead of crossing game loads.
+- Remote client Lua can request landing through the game's existing typed waypoint
+  channel without a local native plugin. The host retains aircraft/island validation
+  and fixed-wing policy. Remote occupancy is unknown (dim marker), not a confirmed
+  host response. Host receipt and replication still require a real network test.
+- Lua syntax, native build and SDK queue regressions pass offline. Ordinary-host,
+  dedicated-server and disconnect/save acceptance remain unverified.
+- This is the next version of Island Airfields: unchanged name, plugin filename
+  and Workshop item 3826940003; no separate mod/subscription.
+
 ## 1.0.1 (2026-10-25)
 
 - The plugin uses only the public CC2X API (world API, CC2X 0.4+): no game addresses of its own.

@@ -1,8 +1,9 @@
 {
   "sdk": "CC2X",
-  "tested_version": "0.4.0",
-  "api_version": 3,
+  "tested_version": "0.6.0-dev",
+  "api_version": 5,
   "default_directory": "../cc2x",
   "override_argument": "--sdk",
-  "override_environment": "CC2X_SDK_DIR"
+  "override_environment": "CC2X_SDK_DIR",
+  "validation": "compile-only; multiplayer runtime unverified"
 }

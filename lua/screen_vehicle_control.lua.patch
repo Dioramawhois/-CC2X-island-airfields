@@ -82,7 +82,7 @@
      g_ui:end_ui()
  
      g_pointer_pos_x_prev = g_pointer_pos_x
-@@ -2393,6 +2441,174 @@
+@@ -2393,6 +2441,182 @@
      end
  end
  
@@ -107,9 +107,17 @@
 +    return cc2x and cc2x.island_airfields
 +end
 +
++-- Orders travel through the vanilla multiplayer waypoint channel. The host alone
++-- accepts the landing and changes the aircraft, including fixed-wing policy.
++function mm_remote_host()
++    if type(update_get_is_multiplayer) ~= "function" then return false end
++    local multiplayer, host = update_get_is_multiplayer()
++    return multiplayer == true and host == false
++end
++
 +-- [my_mod] Without CC2X the mod can only show markers. Say what is missing, on the map itself.
 +function mm_draw_cc2x_notice(screen_w, screen_h)
-+    if mm_plugin() ~= nil then return end
++    if mm_plugin() ~= nil or mm_remote_host() then return end
 +    local line = "Island Airfields needs CC2X: put dinput8.dll from github.com/Dioramawhois/cc2x into the game folder"
 +    if cc2x ~= nil then line = "Island Airfields needs a newer CC2X: get dinput8.dll again from github.com/Dioramawhois/cc2x" end
 +    update_ui_rectangle(0, screen_h - 13, screen_w, 13, color8(0, 0, 0, 220))
@@ -119,7 +127,7 @@
 +-- airfield count (>= 0), -1 = plugin active but not known yet, nil = plugin not active
 +function mm_airfield_count(island)
 +    local p = mm_plugin()
-+    if p == nil then return nil end
++    if p == nil then return mm_remote_host() and -1 or nil end
 +    local n = p.count(island:get_id())
 +    if n == nil then return -1 end
 +    return n
@@ -127,16 +135,16 @@
 +
 +-- true when the plugin answers for this island (landing orders will be honoured)
 +function mm_is_native(island)
-+    return mm_plugin() ~= nil
++    return mm_plugin() ~= nil or mm_remote_host()
 +end
 +
 +-- can this aircraft land on an island airfield? (fixed-wing only with experimental_planes=1)
 +function mm_can_land(vehicle)
 +    local p = mm_plugin()
-+    if p == nil then return false end
++    if p == nil and not mm_remote_host() then return false end
 +    local def = vehicle:get_definition_index()
 +    if def == e_game_object_type.chassis_air_wing_light or def == e_game_object_type.chassis_air_wing_heavy then
-+        return p.planes()
++        return mm_remote_host() or p.planes()
 +    end
 +    return get_is_vehicle_air(def)
 +end
@@ -257,7 +265,7 @@
  function input_event(event, action)
      if event == e_input.pointer_1 then
          g_is_pointer_pressed = action == e_input_action.press
-@@ -2417,7 +2633,9 @@
+@@ -2417,7 +2641,9 @@
                          if child_vehicle:get() and get_is_vehicle_waypoint_available(child_vehicle) then
                              child_vehicle:clear_waypoints()
                              child_vehicle:clear_attack_target()
@@ -268,7 +276,7 @@
                          end
  
                          g_selected_child_vehicle_id = 0
-@@ -2558,14 +2776,14 @@
+@@ -2558,14 +2784,14 @@
                                                              local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
                                  
                                                              drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -285,7 +293,7 @@
                                                          end
                                                      else
                                                          -- add a support waypoint to friendly vehicle
-@@ -2622,7 +2840,7 @@
+@@ -2622,7 +2848,7 @@
                                          local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
              
                                          drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -294,7 +302,7 @@
                                      elseif g_drag.vehicle_id > 0 then
                                          -- add waypoint to vehicle
              
-@@ -2631,7 +2849,7 @@
+@@ -2631,7 +2857,7 @@
  
                                              drag_vehicle:clear_waypoints()
                                              drag_vehicle:clear_attack_target()
@@ -303,3 +311,8 @@
                                          end
                                      end
                                  end
+@@ -3098,3 +3324,4 @@
+ 
+     return true
+ end
++

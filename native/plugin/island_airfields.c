@@ -33,7 +33,7 @@
 #include "cc2x.h"
 
 #define PLUGIN "island_airfields"
-#define VERSION 45
+#define VERSION 46
 
 static const cc2x_api *A;
 static int g_planes;          /* fixed-wing aircraft may land on islands */
@@ -1103,7 +1103,8 @@ static int lua_land(cc2x_lua *L) {
     int64_t id, tid;
     int ok = A->lua_tointeger(L, 1, &id) && A->lua_tointeger(L, 2, &tid) &&
              id > 0 && id < 0x10000 && tid > 0 && tid < 0x10000 &&
-             A->server_post(land_post, (void *)(uintptr_t)((id << 16) | tid));
+             A->server_post_session(A->session_generation(), land_post,
+                                   (void *)(uintptr_t)((id << 16) | tid));
     A->lua_pushboolean(L, ok);
     return 1;
 }
@@ -1122,8 +1123,8 @@ static int lua_test_poll(cc2x_lua *L) {
 
 /* ---- load ------------------------------------------------------------------------------------- */
 CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
-    if (api->api_version < 3 || api->size < sizeof(cc2x_api)) {
-        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X 0.4 or newer (this is %s): inactive", api->sdk_version);
+    if (api->api_version < 5 || api->size < sizeof(cc2x_api)) {
+        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 5 (this is %s): inactive", api->sdk_version);
         return 0;
     }
     A = api;
