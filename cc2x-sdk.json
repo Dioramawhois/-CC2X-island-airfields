@@ -1,9 +1,16 @@
 {
   "sdk": "CC2X",
   "tested_version": "0.6.0-dev",
-  "api_version": 5,
+  "api_version": 4,
   "default_directory": "../cc2x",
   "override_argument": "--sdk",
   "override_environment": "CC2X_SDK_DIR",
-  "validation": "compile-only; multiplayer runtime unverified"
+  "validation": "compile-only; multiplayer runtime unverified",
+  "required_extensions": [
+    {
+      "name": "cc2x.session",
+      "version": 1,
+      "query_export": "cc2x_query_session_v1"
+    }
+  ]
 }

@@ -2,12 +2,18 @@
 
 ## 1.1.0-dev / plugin v46 (unreleased)
 
-- Requires CC2X API 5 (0.6.0-dev). Direct native landing requests are session-bound;
+- Requires CC2X API 4 + session extension v1 (0.6.0-dev). Direct native landing requests are session-bound;
   stale/absent local-server commands are rejected instead of crossing game loads.
 - Remote client Lua can request landing through the game's existing typed waypoint
   channel without a local native plugin. The host retains aircraft/island validation
   and fixed-wing policy. Remote occupancy is unknown (dim marker), not a confirmed
   host response. Host receipt and replication still require a real network test.
+- Session functions are negotiated by the named core export and checked table,
+  so Native Bridge's unrelated API 5-8 tails cannot be mistaken for callbacks.
+- Final waypoint changes are published exactly once after accepted, rejected,
+  pending, deferred or direct landing processing. Previously the ordinary request
+  handler had no explicit post-mutation publication. The regression uses the actual
+  production handler against fake API values, not a game/network session.
 - Lua syntax, native build and SDK queue regressions pass offline. Ordinary-host,
   dedicated-server and disconnect/save acceptance remain unverified.
 - This is the next version of Island Airfields: unchanged name, plugin filename

@@ -27,7 +27,7 @@ game's own code is taken from the local installation at build time.
 ## Next version: 1.1.0-dev (plugin v46)
 
 This updates the existing Island Airfields, retaining its name, plugin filename and
-Workshop item 3826940003. Needs CC2X API 5 / 0.6.0-dev; `tested_version` in
+Workshop item 3826940003. Needs CC2X API 4 + session extension v1 / 0.6.0-dev; `tested_version` in
 cc2x-sdk.json currently means a compile check only, not gameplay acceptance.
 Build against the updated SDK checkout with `--sdk PATH` (or CC2X_SDK_DIR).
 
@@ -37,3 +37,13 @@ is unknown. There is no implemented host capability/acceptance handshake yet.
 Lua syntax and DLL compilation pass; neither ordinary-host multiplayer nor a
 dedicated server has been certified. Do not publish this development version as a
 verified multiplayer release. No native DLL is installed by development tests.
+
+### Offline order regression
+
+`python native/tests/run_order_test.py --sdk PATH --zig PATH` compiles the actual
+production handler into an own test executable with fake API values. It checks
+accepted, rejected and pending orders, deferred completion, direct requests and
+unchanged ordinary moves. Every mutation is published once after its final state;
+this proves callback ordering, not real client receipt or physics replication.
+No mod DLL, Lua or game is executed. A runtime without the named session extension
+stays inactive even if its numeric API version is 5 or higher.

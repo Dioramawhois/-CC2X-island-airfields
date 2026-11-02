@@ -31,11 +31,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "cc2x.h"
+#include "cc2x_session_win32.h"
 
 #define PLUGIN "island_airfields"
 #define VERSION 46
 
 static const cc2x_api *A;
+static const cc2x_session_api *Session;
 static int g_planes;          /* fixed-wing aircraft may land on islands */
 static int g_plane_assist;    /* the flight director flies them (0 = pure vanilla) */
 static uint32_t g_tick;
@@ -157,6 +159,7 @@ static int do_land(void *v, void *island) {
     cleanup_hangars(island);
     if (!A->request_landing(island, v)) return 0;
     A->list_clear(v, CC2X_VEHICLE_WAYPOINTS);
+    A->waypoints_sync(v);  /* publish the final queue, including deferred/direct requests */
     return 1;
 }
 
@@ -261,7 +264,10 @@ static void on_waypoints(void *v, void *user) {
         if (!fd_cancel(v)) cancel_island_landing(v);
         return;
     }
-    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM)) != 1) wp_to_move(wp);   /* fly there instead */
+    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM)) != 1) {
+        wp_to_move(wp);   /* fly there instead; publish the rewritten order */
+        A->waypoints_sync(v);
+    }
 }
 
 /* the hangar slot of a landing human aircraft: its own, else a free one */
@@ -1056,7 +1062,6 @@ static void on_tick(void *srv, void *user) {
             if (!do_land(v, island)) continue;             /* full: retry later */
             g_pending[i].vid = 0;
             STAT(LAND_QUEUED);
-            A->waypoints_sync(v);                          /* clients: waypoints cleared */
         }
     }
     if (g_tick % 64 == 1) refresh_table();
@@ -1097,13 +1102,13 @@ static int lua_planes(cc2x_lua *L) { A->lua_pushboolean(L, g_planes); return 1; 
 static void land_post(void *srv, void *user) {
     uint32_t id = (uint32_t)((uintptr_t)user >> 16), tid = (uint32_t)((uintptr_t)user & 0xffff);
     void *v = vehicle_by_id(id);
-    if (v && land(v, tid) == 1) A->waypoints_sync(v);
+    if (v) (void)land(v, tid);
 }
 static int lua_land(cc2x_lua *L) {
     int64_t id, tid;
     int ok = A->lua_tointeger(L, 1, &id) && A->lua_tointeger(L, 2, &tid) &&
              id > 0 && id < 0x10000 && tid > 0 && tid < 0x10000 &&
-             A->server_post_session(A->session_generation(), land_post,
+             Session->post(Session->generation(), land_post,
                                    (void *)(uintptr_t)((id << 16) | tid));
     A->lua_pushboolean(L, ok);
     return 1;
@@ -1123,8 +1128,13 @@ static int lua_test_poll(cc2x_lua *L) {
 
 /* ---- load ------------------------------------------------------------------------------------- */
 CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
-    if (api->api_version < 5 || api->size < sizeof(cc2x_api)) {
-        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 5 (this is %s): inactive", api->sdk_version);
+    if (api->api_version < 4 || api->size < sizeof(cc2x_api)) {
+        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 4 (this is %s): inactive", api->sdk_version);
+        return 0;
+    }
+    Session = cc2x_session_from_core((const void *)api->server_post);
+    if (!Session) {
+        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X session extension v1: inactive");
         return 0;
     }
     A = api;
