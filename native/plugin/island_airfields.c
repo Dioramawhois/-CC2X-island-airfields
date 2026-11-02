@@ -1128,7 +1128,7 @@ static int lua_test_poll(cc2x_lua *L) {
 
 /* ---- load ------------------------------------------------------------------------------------- */
 CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
-    if (api->api_version < 4 || api->size < sizeof(cc2x_api)) {
+    if (api->api_version < 4 || api->size < CC2X_API_V4_SIZE) {
         api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 4 (this is %s): inactive", api->sdk_version);
         return 0;
     }
