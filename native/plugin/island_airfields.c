@@ -102,16 +102,17 @@ static int list_find(void *af, int list, uint32_t id) {
 
 /* ---- pending landings (island not loaded yet) ------------------------------------------------ */
 #define MAX_PENDING 32
-static struct { uint32_t vid, tid, tick; } g_pending[MAX_PENDING];
+static struct { uint32_t vid, tid; } g_pending[MAX_PENDING];
 
-static void pending_remove(uint32_t id, int only_old) {
+static void pending_remove(uint32_t id) {
     for (int i = 0; i < MAX_PENDING; ++i)
-        if (g_pending[i].vid == id && (!only_old || g_tick - g_pending[i].tick > 30)) g_pending[i].vid = 0;
+        if (g_pending[i].vid == id) g_pending[i].vid = 0;
 }
-static void pending_add(uint32_t id, uint32_t tid) {
-    pending_remove(id, 0);
+static int pending_add(uint32_t id, uint32_t tid) {
+    pending_remove(id);
     for (int i = 0; i < MAX_PENDING; ++i)
-        if (!g_pending[i].vid) { g_pending[i].vid = id; g_pending[i].tid = tid; g_pending[i].tick = g_tick; return; }
+        if (!g_pending[i].vid) { g_pending[i].vid = id; g_pending[i].tid = tid; return 1; }
+    return 0;
 }
 
 /* ---- hangars --------------------------------------------------------------------------------- */
@@ -155,18 +156,18 @@ static void *island_under(void *v) {
 }
 
 /* ---- landing / takeoff ----------------------------------------------------------------------- */
-static int do_land(void *v, void *island) {
+static int do_land(void *v, void *island, int publish) {
     cleanup_hangars(island);
     if (!A->request_landing(island, v)) return 0;
     A->list_clear(v, CC2X_VEHICLE_WAYPOINTS);
-    A->waypoints_sync(v);  /* publish the final queue, including deferred/direct requests */
+    if (publish) A->waypoints_sync(v); /* incoming handlers broadcast after our hook */
     return 1;
 }
 
 /* 1 queued, 0 rejected, 2 pending (island not loaded) */
-static int land(void *v, uint32_t tile_id) {
+static int land(void *v, uint32_t tile_id, int publish) {
     STAT(LAND_REQUESTS);
-    pending_remove(vid(v), 0);
+    pending_remove(vid(v));
     if (!can_land(v) || dock_state(v) != CC2X_DOCK_UNDOCKED || GI(v, CC2X_VEHICLE_ATTACHED_TO) ||
         GI(v, CC2X_VEHICLE_DOCK_VEHICLE)) {
         STAT(LAND_REJECTED);
@@ -175,8 +176,11 @@ static int land(void *v, uint32_t tile_id) {
     void *tile = tile_by_id(tile_id);
     if (!tile || GI(tile, CC2X_TILE_TEAM) != GI(v, CC2X_VEHICLE_TEAM)) { STAT(LAND_REJECTED); return 0; }
     void *island = A->ref(tile, CC2X_TILE_ISLAND, 0);
-    if (!island) { pending_add(vid(v), tile_id); STAT(LAND_PENDING); return 2; }
-    if (!airfield_count(island) || !do_land(v, island)) { STAT(LAND_REJECTED); return 0; }
+    if (!island) {
+        if (!pending_add(vid(v), tile_id)) { STAT(LAND_REJECTED); return 0; }
+        STAT(LAND_PENDING); return 2;
+    }
+    if (!airfield_count(island) || !do_land(v, island, publish)) { STAT(LAND_REJECTED); return 0; }
     STAT(LAND_QUEUED);
     return 1;
 }
@@ -253,21 +257,22 @@ static int cancel_island_landing(void *v) {
 /* a player gave an aircraft new waypoints */
 static void on_waypoints(void *v, void *user) {
     if (!g_on || !A->server() || !is_air(v) || !is_human(v)) return;
+    /* This hook runs after an incoming server waypoint order. Broadcast of our
+     * fallback move does not call it. Any new order revokes the old intent,
+     * even within the same tick, before the island finishes loading. */
+    pending_remove(vid(v));
     void *wp = A->ref(v, CC2X_VEHICLE_WAYPOINTS, 0);
-    if (!wp) { pending_remove(vid(v), 1); return; }
+    if (!wp) return;
     if (dock_state(v) == CC2X_DOCK_DOCKED) {
         if (!GI(v, CC2X_VEHICLE_ATTACHED_TO)) fd_takeoff(v, wp);   /* attached = parked on a carrier */
         return;
     }
     if (GI(wp, CC2X_WAYPOINT_TYPE) != CC2X_WAYPOINT_BARGE_LOAD_TILE) {
-        pending_remove(vid(v), 1);
         if (!fd_cancel(v)) cancel_island_landing(v);
         return;
     }
-    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM)) != 1) {
-        wp_to_move(wp);   /* fly there instead; publish the rewritten order */
-        A->waypoints_sync(v);
-    }
+    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM), 0) != 1)
+        wp_to_move(wp); /* the game's continuation broadcasts the final order once */
 }
 
 /* the hangar slot of a landing human aircraft: its own, else a free one */
@@ -1059,7 +1064,7 @@ static void on_tick(void *srv, void *user) {
             void *island = A->ref(tile, CC2X_TILE_ISLAND, 0);
             if (!island) continue;                         /* not loaded yet: keep waiting */
             if (!airfield_count(island)) { g_pending[i].vid = 0; continue; }
-            if (!do_land(v, island)) continue;             /* full: retry later */
+            if (!do_land(v, island, 1)) continue;          /* full: retry later */
             g_pending[i].vid = 0;
             STAT(LAND_QUEUED);
         }
@@ -1102,7 +1107,7 @@ static int lua_planes(cc2x_lua *L) { A->lua_pushboolean(L, g_planes); return 1; 
 static void land_post(void *srv, void *user) {
     uint32_t id = (uint32_t)((uintptr_t)user >> 16), tid = (uint32_t)((uintptr_t)user & 0xffff);
     void *v = vehicle_by_id(id);
-    if (v) (void)land(v, tid);
+    if (v) (void)land(v, tid, 1);
 }
 static int lua_land(cc2x_lua *L) {
     int64_t id, tid;

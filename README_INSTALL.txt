@@ -1,37 +1,16 @@
-Island Airfields - Carrier Command 2
-====================================
+Island Airfields 2.0.0 client beta 1
 
-Your planes and helicopters land on the airfields of your captured islands, park in the
-hangars (repair, fuel, ammo) and take off again on a new order.
+Requires CC2X SDK 0.8.0 client beta 1 and the reviewed Windows CC2 1.5.18-r2 client.
+Subscribe to Island Airfields and the CC2X SDK Workshop item 3833014670.
+Close the game and copy the SDK item's content/dinput8.dll next to carrier_command.exe.
+Keep a backup of an older identified CC2X runtime; check compatibility before replacing another loader.
+Enable Island Airfields in the game's Mods menu, then restart.
+A ModLoader must review the exact new SDK runtime before automatic installation is supported.
 
-INSTALL
+Land: give an airborne aircraft one waypoint near an airfield on an owned island.
+Launch: give a parked aircraft a new waypoint away from the island.
+Cancel a landing: give a new order before touchdown.
 
-1. CC2X, once (skip if you already have it):
-   - download dinput8.dll:
-     https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll
-   - Steam: right-click Carrier Command 2 > Manage > Browse local files
-   - put dinput8.dll into that folder
-
-2. Subscribe to Island Airfields in the Steam Workshop.
-
-3. Start the game: Mods > enable Island Airfields > restart the game.
-
-PLAY
-
-- Land: give a flying aircraft one waypoint on your island with an airfield.
-- Take off: give a parked aircraft a new waypoint.
-- A new order before touchdown cancels the landing.
-
-PROBLEMS
-
-- A yellow line at the bottom of the map says what is missing.
-- cc2x.log in the game folder says what CC2X loaded. Attach it when reporting a problem.
-
-REMOVE
-
-Disable the mod in the game's Mods menu (or unsubscribe). CC2X itself: delete dinput8.dll
-from the game folder.
-
-Optional settings: %APPDATA%\Carrier Command 2\cc2x\island_airfields.ini
-    [island_airfields]
-    planes=0          ; helicopters only
+Ordinary-host gameplay and map indicators passed user-reported tests.
+Remote-client replication and dedicated-server acceptance are unverified.
+The mod contains Lua/content only. The shared SDK is installed separately.

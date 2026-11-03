@@ -1,5 +1,42 @@
 # Changelog
 
+## 2.0.0-client-beta.1 (2026-11-04)
+
+- Own-island airfield markers use checked stock generation metadata before
+  terrain streams, so ownership does not require another reconnaissance flight.
+  Keep normal team colour and suppress islands whose generation has no runway.
+  Actual controller data remains authoritative. Pin the reviewed engine in
+  package provenance and cover both map screens with real Lua regression.
+
+- Move complete gameplay policy to a separate Lua/content package using public
+  SDK primitives: helicopters, fixed-wing flight patterns, runway locks, bounded
+  deferred orders, hangars, servicing, launch and cancellation. No gameplay DLL
+  is included. Keep the native implementation as a regression reference.
+- Require verified incoming waypoint origin on the host and reject absent or
+  stale context. Clear session state and stop control on ownership changes.
+- Use the existing incoming handler's continuation for its one final broadcast;
+  reserve explicit publication for deferred/direct work. The hook precedes the
+  original broadcast, as checked against the actual client executable.
+- Add actual-Host Lua regression and native-free reproducible package checks.
+  Screens tolerate an unavailable legacy debug channel.
+- Private copied-client tests have reached real sessions with the Lua policy;
+  full flight/physics and remote-client acceptance are still being investigated.
+  Local messages are not a host handshake. Dedicated support is unverified.
+
+## Earlier isolated multiplayer order safety
+
+- A new waypoint order immediately cancels an earlier deferred landing. Remove
+  the 30-tick age exemption, which could allow a canceled landing to execute
+  when the island loaded soon after a replacement move or cleared order.
+- Report full deferred-request queues as rejected. Replacing an aircraft's own
+  queued request remains possible at capacity without evicting another aircraft.
+- Enable assertions explicitly in the optimized order fixture; previous Zig
+  optimized builds could print PASS with their `assert` checks compiled out.
+  Add regression cases for cancellation, exhaustion/replacement, rejected new
+  orders, session reset and lost island ownership, plus optional hashed evidence.
+- These fixes maintain the native reference alongside the Lua implementation.
+  They add no transport/handshake, install nothing and do not certify multiplayer.
+
 ## 1.1.0-dev / plugin v46 (unreleased)
 
 - Complete package builder uses the separate common SDK, records plugin/compiler/

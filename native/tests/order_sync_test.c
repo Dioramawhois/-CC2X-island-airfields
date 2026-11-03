@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Actual production handler against copied game/API values. No DLL, Lua or game runs. */
+#ifdef NDEBUG
+#error Order regressions require active assertions
+#endif
 #include <assert.h>
 #include "../plugin/island_airfields.c"
 
@@ -61,9 +64,17 @@ static int test_clear(void *v, int list) {
 }
 static void test_sync(void *v) {
     assert(v == &vehicle);
-    if (scenario == ACCEPT) assert(dock == CC2X_DOCK_QUEUED && !has_wp && sequence++ == 2);
-    else assert(has_wp && wp_type == CC2X_WAYPOINT_MOVE && wp_param == 0);
+    if (sequence) assert(dock == CC2X_DOCK_QUEUED && !has_wp && sequence++ == 2);
+    else assert(!has_wp || wp_type == CC2X_WAYPOINT_MOVE);
     ++sync_count;
+}
+/* The audited game hook precedes the handler's unconditional broadcast.
+ * Model that continuation too; testing the callback alone misses duplicates. */
+static void incoming_order(void) {
+    int before = sync_count;
+    on_waypoints(&vehicle, NULL);
+    assert(sync_count == before);
+    test_sync(&vehicle);
 }
 static void reset(int value) {
     scenario = value; has_wp = 1; wp_type = CC2X_WAYPOINT_BARGE_LOAD_TILE; wp_param = 7;
@@ -77,11 +88,12 @@ int main(void) {
     api.find = test_find; api.ref = test_ref; api.count = test_count;
     api.request_landing = test_request; api.list_clear = test_clear; api.waypoints_sync = test_sync;
     A = &api;
-    reset(ACCEPT); on_waypoints(&vehicle, NULL);
+    InitializeCriticalSection(&g_table_cs);
+    reset(ACCEPT); incoming_order();
     assert(sync_count == 1 && sequence == 3);
-    reset(REJECT); on_waypoints(&vehicle, NULL);
+    reset(REJECT); incoming_order();
     assert(sync_count == 1 && wp_type == CC2X_WAYPOINT_MOVE && wp_param == 0);
-    reset(PENDING); on_waypoints(&vehicle, NULL);
+    reset(PENDING); incoming_order();
     assert(sync_count == 1 && g_pending[0].vid == 17);
     scenario = ACCEPT; sequence = sync_count = 0; g_tick = 7;
     on_tick(&server, NULL);
@@ -89,7 +101,45 @@ int main(void) {
     reset(ACCEPT); land_post(&server, (void *)(uintptr_t)((17u << 16) | 7u));
     assert(sync_count == 1 && sequence == 3);
     reset(ACCEPT); wp_type = CC2X_WAYPOINT_MOVE;
-    on_waypoints(&vehicle, NULL); assert(sync_count == 0);
-    puts("PASS: accepted/rejected/pending orders, deferred and direct landing sync exactly once after mutation");
+    incoming_order(); assert(sync_count == 1 && wp_param == 7);
+    /* A new order immediately cancels a deferred landing, including the same tick. */
+    reset(PENDING); incoming_order();
+    assert(g_pending[0].vid == 17);
+    incoming_order(); /* the player submits a new ordinary move */
+    assert(!g_pending[0].vid);
+    scenario = ACCEPT; sequence = sync_count = 0; g_tick = 7;
+    on_tick(&server, NULL);
+    assert(sync_count == 0 && sequence == 0 && dock == CC2X_DOCK_UNDOCKED);
+    reset(PENDING); incoming_order(); has_wp = 0;
+    incoming_order(); assert(!g_pending[0].vid);
+    /* Exhaustion is a rejection, never a falsely reported pending request. */
+    reset(PENDING);
+    for (int i = 0; i < MAX_PENDING; ++i) {
+        g_pending[i].vid = 100u + (uint32_t)i; g_pending[i].tid = 7;
+    }
+    uint32_t rejected = D.stats[ST_LAND_REJECTED], pending = D.stats[ST_LAND_PENDING];
+    assert(land(&vehicle, 7, 1) == 0 && D.stats[ST_LAND_REJECTED] == rejected + 1);
+    assert(D.stats[ST_LAND_PENDING] == pending);
+    for (int i = 0; i < MAX_PENDING; ++i) assert(g_pending[i].vid == 100u + (uint32_t)i);
+    g_pending[5].vid = 17;
+    assert(land(&vehicle, 7, 1) == 2 && g_pending[5].vid == 17); /* own slot can be replaced */
+    for (int i = 0; i < MAX_PENDING; ++i) if (i != 5) assert(g_pending[i].vid == 100u + (uint32_t)i);
+    /* A rejected new landing cannot revive the prior request. */
+    reset(PENDING); incoming_order(); scenario = REJECT;
+    wp_type = CC2X_WAYPOINT_BARGE_LOAD_TILE; incoming_order();
+    assert(!g_pending[0].vid);
+    /* Session end/start and lost island ownership invalidate deferred work. */
+    reset(PENDING); incoming_order();
+    on_session(&server, 0, NULL); on_session(&server, 1, NULL);
+    assert(!g_pending[0].vid);
+    scenario = ACCEPT; sequence = sync_count = 0; g_tick = 7; on_tick(&server, NULL);
+    assert(sync_count == 0 && sequence == 0);
+    reset(PENDING); incoming_order();
+    scenario = REJECT; g_tick = 7; on_tick(&server, NULL);
+    assert(!g_pending[0].vid);
+    scenario = ACCEPT; sequence = sync_count = 0; g_tick = 15; on_tick(&server, NULL);
+    assert(sync_count == 0 && sequence == 0);
+    DeleteCriticalSection(&g_table_cs);
+    puts("PASS: final order sync, immediate cancellation, queue exhaustion/replacement, session reset and lost ownership (fake engine)");
     return 0;
 }

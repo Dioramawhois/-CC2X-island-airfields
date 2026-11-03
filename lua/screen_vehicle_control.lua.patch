@@ -19,8 +19,8 @@
              end
          end
  
-+        -- [my_mod] Airfield icon on own islands (command-centre position, static). With the native patch
-+        -- running only islands with a real runway are marked; without it every captured island is.
++        -- [my_mod] Own airfield infrastructure is known from map generation metadata.
++        -- Keep the normal team colour regardless of streaming distance.
 +        do
 +            local mm_my_team = update_get_screen_team_id()
 +            local mm_alpha = 200
@@ -30,7 +30,7 @@
 +                local island = update_get_tile_by_index(i)
 +                if island:get() and island:get_team_control() == mm_my_team and mm_is_marked_airfield(island) then
 +                    local base = update_get_team_color(mm_my_team)
-+                    local col = color8(base:r(), base:g(), base:b(), math.floor(mm_alpha * mm_marker_alpha_factor(island)))
++                    local col = color8(base:r(), base:g(), base:b(), mm_alpha)
 +                    local wx, wy = mm_island_pos(island)
 +                    local sx, sy = get_screen_from_world(wx, wy, g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
 +                    update_ui_image(sx - 8, sy - 8, atlas_icons.map_icon_factory_chassis_air, col, 0)
@@ -82,7 +82,7 @@
      g_ui:end_ui()
  
      g_pointer_pos_x_prev = g_pointer_pos_x
-@@ -2393,6 +2441,182 @@
+@@ -2393,6 +2441,196 @@
      end
  end
  
@@ -104,6 +104,14 @@
 +MM_LANDING_RADIUS = 3000.0
 +
 +function mm_plugin()
++    local modules = cc2x and cc2x.modules
++    if type(modules) == "table" and type(modules.read) == "function" and
++       modules.read("island_airfields", "active", 0) == 1 then
++        return {
++            count = function(id) return modules.read("island_airfields", "count", id) end,
++            planes = function() return modules.read("island_airfields", "planes", 0) == 1 end,
++        }
++    end
 +    return cc2x and cc2x.island_airfields
 +end
 +
@@ -127,10 +135,22 @@
 +-- airfield count (>= 0), -1 = plugin active but not known yet, nil = plugin not active
 +function mm_airfield_count(island)
 +    local p = mm_plugin()
-+    if p == nil then return mm_remote_host() and -1 or nil end
-+    local n = p.count(island:get_id())
-+    if n == nil then return -1 end
-+    return n
++    if p == nil and not mm_remote_host() then return nil end
++    local n = p and p.count(island:get_id()) or -1
++    if n ~= nil and n >= 0 then return n end
++
++    -- The supported game's generator requests one runway at difficulty 2-4,
++    -- none at difficulty 1. Stock map metadata exposes that level before loading
++    -- the island. Our own infrastructure needs no reconnaissance flight.
++    -- See docs/OWNED_ISLAND_KNOWLEDGE.md for the checked engine rule.
++    if island:get_team_control() == update_get_screen_team_id() and
++       type(island.get_difficulty_level) == "function" then
++        local level = island:get_difficulty_level()
++        if type(level) == "number" and level >= 1 and level <= 4 then
++            return level >= 2 and 1 or 0
++        end
++    end
++    return -1
 +end
 +
 +-- true when the plugin answers for this island (landing orders will be honoured)
@@ -150,8 +170,7 @@
 +end
 +
 +-- Should the airfield marker be drawn on this (own) island?
-+-- Patch active: only islands that really have a runway (unknown islands - not loaded yet in this
-+-- session - are marked too, dimmed). No patch: every captured island (best effort).
++-- Hide a confirmed absence of runways; keep unqueried owned islands as candidates.
 +function mm_is_marked_airfield(island)
 +    local n = mm_airfield_count(island)
 +
@@ -159,19 +178,14 @@
 +    return n > 0
 +end
 +
-+-- 1 for a confirmed airfield (or no patch), 0.35 when the patch does not know the island yet
-+function mm_marker_alpha_factor(island)
-+    local n = mm_airfield_count(island)
-+
-+    if n ~= nil and n < 0 then return 0.35 end
-+    return 1
-+end
++-- Marker colour shows island ownership, including islands not loaded yet.
++-- A coloured marker is not confirmation of runway data or remote host support.
 +
 +-- [my_mod] Self-test hook for native/tools (plugin test channel). Does nothing unless a tool hands
 +-- out a command; then it gives the same orders the map does.
 +function mm_self_test_tick()
 +    local p = mm_plugin()
-+    if p == nil then return end
++    if p == nil or type(p.test_poll) ~= "function" then return end
 +    local cmd, vehicle_id, tile_id, x, y = p.test_poll()
 +    if cmd == nil then return end
 +
@@ -265,7 +279,7 @@
  function input_event(event, action)
      if event == e_input.pointer_1 then
          g_is_pointer_pressed = action == e_input_action.press
-@@ -2417,7 +2641,9 @@
+@@ -2417,7 +2655,9 @@
                          if child_vehicle:get() and get_is_vehicle_waypoint_available(child_vehicle) then
                              child_vehicle:clear_waypoints()
                              child_vehicle:clear_attack_target()
@@ -276,7 +290,7 @@
                          end
  
                          g_selected_child_vehicle_id = 0
-@@ -2558,14 +2784,14 @@
+@@ -2558,14 +2798,14 @@
                                                              local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
                                  
                                                              drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -293,7 +307,7 @@
                                                          end
                                                      else
                                                          -- add a support waypoint to friendly vehicle
-@@ -2622,7 +2848,7 @@
+@@ -2622,7 +2862,7 @@
                                          local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, 256, 256)
              
                                          drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
@@ -302,7 +316,7 @@
                                      elseif g_drag.vehicle_id > 0 then
                                          -- add waypoint to vehicle
              
-@@ -2631,7 +2857,7 @@
+@@ -2631,7 +2871,7 @@
  
                                              drag_vehicle:clear_waypoints()
                                              drag_vehicle:clear_attack_target()
@@ -311,7 +325,7 @@
                                          end
                                      end
                                  end
-@@ -3098,3 +3324,4 @@
+@@ -3098,3 +3338,4 @@
  
      return true
  end
