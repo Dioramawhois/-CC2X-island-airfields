@@ -15,7 +15,11 @@ Needs the CC2X SDK next to this repository (`../cc2x`, see `cc2x-sdk.json`) and 
    After editing `content/scripts`, `python lua/build_lua.py --diff` rewrites the patches.
 2. `python native/build.py` - builds the plugin `cc2x_island_airfields.dll`.
 
-`native/package.py` builds the finished mod folder. Developer notes, tools and testing:
+`native/package.py --sdk PATH --zig PATH --game PATH --luac PATH` builds a new
+complete mod folder, with source/native hashes and dependency metadata. It never
+deletes an existing package or installs files into the game. Install through the
+ModLoader GUI; the existing Workshop identity 3826940003 is preserved.
+Developer notes, tools and testing:
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License

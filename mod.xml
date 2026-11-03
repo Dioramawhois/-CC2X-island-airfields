@@ -9,4 +9,7 @@ Development version: needs CC2X 0.6 with session extension v1 or newer (one file
 
 Version 1.1.0-dev (plugin v46). Windows, game version 1.5.18. Multiplayer implementation is in development and is not yet runtime-verified.
 ">
+  <cc2mce schema="1" type="mod" id="3826940003" sdk="cc2x" api="8">
+    <requires id="cc2x.runtime"/>
+  </cc2mce>
 </data>

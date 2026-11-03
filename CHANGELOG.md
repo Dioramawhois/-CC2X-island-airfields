@@ -2,6 +2,14 @@
 
 ## 1.1.0-dev / plugin v46 (unreleased)
 
+- Complete package builder uses the separate common SDK, records plugin/compiler/
+  header/source hashes, includes redistribution notices and checks Lua syntax.
+  Existing outputs are preserved; the builder no longer deletes installed mods.
+  Workshop ID 3826940003 is retained in opt-in SDK dependency metadata.
+- Real combined Windows client session with AI Bridge, Hold/Modes/Brake and custom
+  aircraft passed native loading and unchanged-catalog aircraft spawn/save/reload.
+  Island landing/flight and real multiplayer/dedicated remain separate gates.
+
 - Requires CC2X API 4 + session extension v1 (0.6.0-dev). Direct native landing requests are session-bound;
   stale/absent local-server commands are rejected instead of crossing game loads.
 - Remote client Lua can request landing through the game's existing typed waypoint
