@@ -39,6 +39,11 @@ local function aircraft(id,def)
         self.orders[#self.orders+1] = {x=x,y=y}
         return #self.orders
     end
+    function value:clear_waypoints_from(index)
+        -- Owned model of the reviewed drag path: remove the selected point
+        -- and its successors before adding the point at its new position.
+        for i = #self.orders, index, -1 do self.orders[i] = nil end
+    end
     function value:set_waypoint_type_barge_load_tile(index,id) self.orders[index].tile=id end
     return value
 end
@@ -48,6 +53,26 @@ assert(index==1 and v.orders[1].tile==10 and v.orders[1].x==100)
 assert(g_mm_landing_orders[20]==10)
 mm_add_waypoint(v,120,0)
 assert(v.orders[2].tile==nil and v.orders[2].x==120, 'appending a route must remain a move')
+local function drag_existing_point(vehicle, index, x, y)
+    vehicle:clear_waypoints_from(index)
+    return mm_add_waypoint(vehicle, x, y)
+end
+local first_drag = aircraft(30)
+local first_id = first_drag:add_waypoint(20000,0)
+local moved_id = drag_existing_point(first_drag,first_id,110,0)
+assert(moved_id==1 and #first_drag.orders==1 and first_drag.orders[1].tile==10,
+    'dragging the existing first point near an owned runway must encode a landing')
+assert(first_drag.orders[1].x==100 and g_mm_landing_orders[30]==10)
+local later_drag = aircraft(31)
+later_drag:add_waypoint(20000,0)
+local preceding = later_drag.orders[1]
+local later_id = later_drag:add_waypoint(21000,0)
+local later_moved_id = drag_existing_point(later_drag,later_id,110,0)
+assert(later_moved_id==2 and #later_drag.orders==2 and later_drag.orders[1]==preceding,
+    'dragging a later point must preserve the preceding route')
+assert(later_drag.orders[2].tile==nil and later_drag.orders[2].x==110,
+    'a later route point near a runway must remain an ordinary move')
+assert(g_mm_landing_orders[31]==nil)
 local far = aircraft(21)
 mm_add_waypoint(far,20000,0)
 assert(far.orders[1].tile==nil and far.orders[1].x==20000)
@@ -92,7 +117,7 @@ g_mm_landing_orders[28]=10
 mm_draw_airfields(512,512,false)
 assert(#images==1 and images[1][1]==20092)
 assert(#circles==1 and #lines==1, 'parked and queued statuses must survive the adapter')
-print('PASS: own markers, Revolution transforms, normal/append/group/proxy orders, module absence, remote encoding and airfield statuses (synthetic UI)')
+print('PASS: own markers, Revolution transforms, normal/append/first-point/later-point/group/proxy orders, module absence, remote encoding and airfield statuses (synthetic UI)')
 
 -- Island or another carrier's traffic must not occupy this carrier's display.
 g_flight_deck_states = {none=0, taxi=1, queued=2, landing=3, launch=4, holding=5}

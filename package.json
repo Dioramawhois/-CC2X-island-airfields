@@ -2,10 +2,10 @@
   "id": "3826940003",
   "name": "Island Airfields",
   "author": "dioramawork",
-  "version": "2.1.0-client-beta.1",
+  "version": "2.1.1-client-beta.1",
   "api": 8,
   "lua_api": 2,
-  "description": "Separate Island Airfields addon for stock CC2 and Revolution 1.6-19. Requires CC2X SDK 0.8.1. Includes only owned gameplay/UI and hash-pinned screen edits; no Revolution files.",
+  "description": "Separate Island Airfields addon for stock CC2 and Revolution 1.6-19/1.6-20. Requires CC2X SDK 0.8.1. Includes only owned gameplay/UI and hash-pinned screen edits; no Revolution files.",
   "resources": {},
   "runtime_capabilities": [
     "lua-mod-api-v2",
