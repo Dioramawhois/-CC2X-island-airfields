@@ -1,0 +1,73 @@
+# Installation - Island Airfields 2.0
+
+Windows / reviewed CC2 1.5.18-r2 client. Requires **CC2X SDK 0.8.0 client beta 1**.
+
+![Subscribe to both items, install the SDK DLL with the game closed, enable the mod and restart.](images/03-installation-flow.png)
+
+## 1. Subscribe to the mod and SDK
+
+Subscribe to [Island Airfields](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
+and [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
+Wait for Steam to finish downloading both. Subscribing downloads the SDK; the
+manual copy below installs its bootstrap.
+
+## 2. Find the SDK DLL
+
+With the game closed, open this folder inside your Steam library:
+
+```text
+steamapps/workshop/content/1489630/3833014670/content
+```
+
+![Explorer showing dinput8.dll in the SDK Workshop content folder.](images/01-sdk-file.png)
+
+Copy **dinput8.dll**. You can also [download that file from the exact SDK release](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/download/0.8.0-client-beta.1/dinput8.dll).
+
+## 3. Open the game folder
+
+In Steam choose **Library > Carrier Command 2 > gear icon > Manage > Browse local files**.
+Copy the DLL beside the game executable:
+
+```text
+Carrier Command 2/
+    carrier_command.exe
+    dinput8.dll
+```
+
+![Explorer showing dinput8.dll beside carrier_command.exe.](images/02-game-folder.png)
+
+The screenshots illustrate file names and placement; Windows language, dates and
+your Steam library location may differ. Use the SDK 0.8 download linked above.
+Keep a backup of an older identified CC2X runtime; check compatibility before
+replacing a different loader.
+
+## 4. Enable the mod
+
+Start the game, open **Mods**, enable **Island Airfields**, then restart. After
+future SDK updates, repeat the DLL copy with the game closed. Steam does not
+update a manually copied DLL automatically.
+
+## Updating an older setup
+
+The new mod contains Lua/content. It does not need a separate
+`cc2x_island_airfields.dll`. With the game closed, take only a previously manually
+installed Island Airfields DLL out of its loading location. Keep the shared SDK
+and unrelated plugins. Enable one Island Airfields copy at a time.
+
+ModLoader must explicitly support this exact SDK 0.8 runtime for automatic
+installation. Until your build supports it, use the manual route above. Other
+mods editing the map or vehicle-control screens require a compatible merge.
+
+## First check
+
+1. Start single-player or an ordinary-host session. Custom with several starting islands is convenient.
+2. Owned airfields are marked in team colour immediately.
+3. Give an airborne aircraft one waypoint near an owned airfield to land.
+4. Give a parked aircraft a new waypoint away from the island to launch.
+5. A replacement order before touchdown cancels the landing.
+
+Planes and helicopters are enabled by default. Include `cc2x.log` from the game
+folder, versions, enabled mods and reproduction steps with a problem report.
+
+Ordinary-host gameplay and map checks passed manual tests. A second remote client
+and dedicated servers remain unverified.

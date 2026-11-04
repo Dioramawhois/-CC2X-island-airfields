@@ -14,7 +14,7 @@
  * takes off from an island airfield itself (on_airfield_tick: the flight director - the vanilla
  * island airfield code is unfinished for player aircraft).
  *
- * Uses only the public CC2X API (API 5 required): no game addresses or memory layouts here.
+ * Uses only the public CC2X API (0.4+, API 3): no game addresses or memory layouts here.
  * Installed as part of the mod: <mod folder>\content\cc2x\cc2x_island_airfields.dll, loaded by CC2X
  * when the mod is enabled in the game's mod menu. No settings are needed; optionally
  * %APPDATA%\Carrier Command 2\cc2x\island_airfields.ini
@@ -31,38 +31,17 @@
 #include <stdio.h>
 #include <string.h>
 #include "cc2x.h"
-#include "landing_post.h"
-#include "iaf_fd_core.h"
-
-#if CC2X_API_VERSION < 5
-#error Island Airfields requires CC2X API 5 headers
-#endif
+#include "cc2x_session_win32.h"
 
 #define PLUGIN "island_airfields"
-#define VERSION 45
+#define VERSION 46
 
 static const cc2x_api *A;
+static const cc2x_session_api *Session;
 static int g_planes;          /* fixed-wing aircraft may land on islands */
 static int g_plane_assist;    /* the flight director flies them (0 = pure vanilla) */
 static uint32_t g_tick;
 static int g_on;              /* all game events subscribed: the plugin is active */
-#include "wasm_bridge.h"
-static int wasm_attempted;
-static int wasm_start(void) {
-    if(wasm_attempted) return iaf_wasm_ready();
-    wasm_attempted=1; wasm_thread=GetCurrentThreadId();
-    HMODULE self=NULL; char path[MAX_PATH];
-    if(!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                         (LPCSTR)(uintptr_t)&wasm_start,&self)) return 0;
-    DWORD n=GetModuleFileNameA(self,path,sizeof path);
-    if(!n || n>=sizeof path) return 0;
-    char *slash=strrchr(path,'\\');if(!slash) return 0;
-    const char file[]="cc2x_island_airfields_core.wasm";
-    if((size_t)(slash+1-path)+sizeof file>sizeof path)return 0;
-    memcpy(slash+1,file,sizeof file);
-    if(!iaf_wasm_open(path)) {A->log(PLUGIN,CC2X_LOG_ERROR,"wasm FD disabled: %s",iaf_wasm_error());g_on=0;return 0;}
-    A->log(PLUGIN,CC2X_LOG_INFO,"experimental metered production wasm FD ready");return 1;
-}
 
 /* fields of the game objects (cc2x.h) */
 #define GI(o, f) A->geti(o, f, 0)
@@ -123,16 +102,17 @@ static int list_find(void *af, int list, uint32_t id) {
 
 /* ---- pending landings (island not loaded yet) ------------------------------------------------ */
 #define MAX_PENDING 32
-static struct { uint32_t vid, tid, tick; } g_pending[MAX_PENDING];
+static struct { uint32_t vid, tid; } g_pending[MAX_PENDING];
 
-static void pending_remove(uint32_t id, int only_old) {
+static void pending_remove(uint32_t id) {
     for (int i = 0; i < MAX_PENDING; ++i)
-        if (g_pending[i].vid == id && (!only_old || g_tick - g_pending[i].tick > 30)) g_pending[i].vid = 0;
+        if (g_pending[i].vid == id) g_pending[i].vid = 0;
 }
-static void pending_add(uint32_t id, uint32_t tid) {
-    pending_remove(id, 0);
+static int pending_add(uint32_t id, uint32_t tid) {
+    pending_remove(id);
     for (int i = 0; i < MAX_PENDING; ++i)
-        if (!g_pending[i].vid) { g_pending[i].vid = id; g_pending[i].tid = tid; g_pending[i].tick = g_tick; return; }
+        if (!g_pending[i].vid) { g_pending[i].vid = id; g_pending[i].tid = tid; return 1; }
+    return 0;
 }
 
 /* ---- hangars --------------------------------------------------------------------------------- */
@@ -176,17 +156,18 @@ static void *island_under(void *v) {
 }
 
 /* ---- landing / takeoff ----------------------------------------------------------------------- */
-static int do_land(void *v, void *island) {
+static int do_land(void *v, void *island, int publish) {
     cleanup_hangars(island);
     if (!A->request_landing(island, v)) return 0;
     A->list_clear(v, CC2X_VEHICLE_WAYPOINTS);
+    if (publish) A->waypoints_sync(v); /* incoming handlers broadcast after our hook */
     return 1;
 }
 
 /* 1 queued, 0 rejected, 2 pending (island not loaded) */
-static int land(void *v, uint32_t tile_id) {
+static int land(void *v, uint32_t tile_id, int publish) {
     STAT(LAND_REQUESTS);
-    pending_remove(vid(v), 0);
+    pending_remove(vid(v));
     if (!can_land(v) || dock_state(v) != CC2X_DOCK_UNDOCKED || GI(v, CC2X_VEHICLE_ATTACHED_TO) ||
         GI(v, CC2X_VEHICLE_DOCK_VEHICLE)) {
         STAT(LAND_REJECTED);
@@ -195,8 +176,11 @@ static int land(void *v, uint32_t tile_id) {
     void *tile = tile_by_id(tile_id);
     if (!tile || GI(tile, CC2X_TILE_TEAM) != GI(v, CC2X_VEHICLE_TEAM)) { STAT(LAND_REJECTED); return 0; }
     void *island = A->ref(tile, CC2X_TILE_ISLAND, 0);
-    if (!island) { pending_add(vid(v), tile_id); STAT(LAND_PENDING); return 2; }
-    if (!airfield_count(island) || !do_land(v, island)) { STAT(LAND_REJECTED); return 0; }
+    if (!island) {
+        if (!pending_add(vid(v), tile_id)) { STAT(LAND_REJECTED); return 0; }
+        STAT(LAND_PENDING); return 2;
+    }
+    if (!airfield_count(island) || !do_land(v, island, publish)) { STAT(LAND_REJECTED); return 0; }
     STAT(LAND_QUEUED);
     return 1;
 }
@@ -271,26 +255,24 @@ static int cancel_island_landing(void *v) {
 }
 
 /* a player gave an aircraft new waypoints */
-static void waypoints_impl(void *v, void *user) {
+static void on_waypoints(void *v, void *user) {
     if (!g_on || !A->server() || !is_air(v) || !is_human(v)) return;
+    /* This hook runs after an incoming server waypoint order. Broadcast of our
+     * fallback move does not call it. Any new order revokes the old intent,
+     * even within the same tick, before the island finishes loading. */
+    pending_remove(vid(v));
     void *wp = A->ref(v, CC2X_VEHICLE_WAYPOINTS, 0);
-    if (!wp) { pending_remove(vid(v), 1); return; }
+    if (!wp) return;
     if (dock_state(v) == CC2X_DOCK_DOCKED) {
         if (!GI(v, CC2X_VEHICLE_ATTACHED_TO)) fd_takeoff(v, wp);   /* attached = parked on a carrier */
         return;
     }
     if (GI(wp, CC2X_WAYPOINT_TYPE) != CC2X_WAYPOINT_BARGE_LOAD_TILE) {
-        pending_remove(vid(v), 1);
         if (!fd_cancel(v)) cancel_island_landing(v);
         return;
     }
-    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM)) != 1) wp_to_move(wp);   /* fly there instead */
-}
-
-static void on_waypoints(void *v, void *user) {
-    if(!g_on || !iaf_wasm_ready() || GetCurrentThreadId()!=wasm_thread || wasm_entered)return;
-    if(setjmp(wasm_abort)){wasm_entered=0;return;}
-    wasm_entered=1;waypoints_impl(v,user);wasm_entered=0;
+    if (land(v, (uint32_t)GI(wp, CC2X_WAYPOINT_PARAM), 0) != 1)
+        wp_to_move(wp); /* the game's continuation broadcasts the final order once */
 }
 
 /* the hangar slot of a landing human aircraft: its own, else a free one */
@@ -334,8 +316,8 @@ static int main_gear_down(void *v) {
     return 0;
 }
 
-static double clampd(double x, double lo, double hi) { return iaf_fd_clamp(x, lo, hi); }
-static double wrap(double a) { return iaf_fd_wrap(a); }
+static double clampd(double x, double lo, double hi) { return x < lo ? lo : x > hi ? hi : x; }
+static double wrap(double a) { return remainder(a, 6.283185307179586); }
 
 /* ---- terrain: the game's own physics scene. Static surfaces only: terrain and buildings */
 /* world height of the first static surface below x,y0,z; *hit = 0: none */
@@ -351,20 +333,33 @@ static double probe_down(double x, double y0, double z, int *hit) {
 static double probe_ground(double x, double z, int *hit) { return probe_down(x, 3000.0, z, hit); }
 
 /* ---- runway geometry: rev = 0 lands from the start node towards the end node ------------------ */
-typedef iaf_runway Rwy;
+typedef struct { double thr[3], ax, az, len; } Rwy;
 
-/* SDK read of the runway nodes; the geometry is the flight director core's */
 static int runway(void *af, int rev, Rwy *r) {
     double ws[3], we[3];
     for (int k = 0; k < 3; ++k) {
         ws[k] = A->getf(af, CC2X_AIRFIELD_RUNWAY_START, k);
         we[k] = A->getf(af, CC2X_AIRFIELD_RUNWAY_END, k);
     }
-    return iaf_runway_from_nodes(ws, we, rev, r);
+    double *a = rev ? we : ws, *b = rev ? ws : we;
+    double dx = b[0] - a[0], dz = b[2] - a[2], len = sqrt(dx * dx + dz * dz);
+    if (len < 1.0) return 0;
+    memcpy(r->thr, a, sizeof(r->thr));
+    r->ax = dx / len; r->az = dz / len; r->len = len;
+    return 1;
 }
-static void rwy_frame(const Rwy *r, double x, double z, double *s, double *lat) { iaf_runway_frame(r, x, z, s, lat); }
-static void rwy_point(const Rwy *r, double s, double lat, double out[3]) { iaf_runway_point(r, s, lat, out); }
-static double rwy_yaw(const Rwy *r) { return iaf_runway_yaw(r); }
+/* s: distance before the threshold (> 0 on the approach side), lat: distance to the side */
+static void rwy_frame(const Rwy *r, double x, double z, double *s, double *lat) {
+    double dx = x - r->thr[0], dz = z - r->thr[2];
+    *s = -(dx * r->ax + dz * r->az);
+    *lat = -dx * r->az + dz * r->ax;
+}
+static void rwy_point(const Rwy *r, double s, double lat, double out[3]) {
+    out[0] = r->thr[0] - s * r->ax - lat * r->az;
+    out[1] = r->thr[1];
+    out[2] = r->thr[2] - s * r->az + lat * r->ax;
+}
+static double rwy_yaw(const Rwy *r) { return cc2x_yaw_of(r->ax, r->az); }
 
 /* ---- approach plan, once per airfield: the terrain around it is scanned. The pattern height clears
  * everything around; of the two runway ends and a few glide slopes the flattest final that clears
@@ -459,24 +454,30 @@ static void as_ground(void *v) { SI(v, CC2X_VEHICLE_FLIGHT_STATE, CC2X_FLIGHT_GR
 #define FD_PLANE_RANGE 6000.0       /* landing: taken out of the vanilla holding queue within this range */
 #define FD_HELI_RANGE 4000.0
 #define P_SPEED 75.0
+#define P_FINAL_SPEED 62.0
 #define P_TURN_RATE 0.14            /* rad/s (~8 deg/s): a ~540 m turn at P_SPEED */
+#define P_WIDTH (2.0 * P_SPEED / P_TURN_RATE)   /* downwind leg: a 180 deg turn ends on the final */
+#define P_BANK_SIGN -1.0            /* +x is the left wing: a left turn (yaw rate > 0) lowers it */
+#define P_ROTATE_SPEED 45.0
 #define P_HANDOFF_HEIGHT 120.0
 #define H_CRUISE 100.0
 #define H_SPEED 45.0
 #define H_HANDOFF_HEIGHT 40.0
 
+enum {
+    PH_NONE, PH_HOLD, PH_INBOUND, PH_DOWNWIND, PH_BASE, PH_FINAL, PH_ROLLOUT,
+    PH_WAIT, PH_ROLL, PH_CLIMB, PH_H_INBOUND, PH_H_DESCEND, PH_H_LIFT
+};
 static const char *PH_NAME[] = {"-", "hold", "inbound", "downwind", "base turn", "final", "rollout",
                                 "waiting for the runway", "takeoff roll", "climb", "inbound", "descend", "lift"};
 
 typedef struct {
     uint32_t vid, slot, t0;
     void *af;
-    int takeoff, lined;
-    iaf_landing_state landing;
-    iaf_fd_kin k;                   /* flight director core state */
-    double stand;
+    int phase, takeoff, side, lined, gear_set, go_arounds;
+    double yaw, speed, vz, roll, stand, hv[2];
     uint32_t t_desc;
-    double min_clear;
+    double max_lat, min_clear, td_speed;
     LARGE_INTEGER t;
 } Flight;
 #define MAX_FLIGHTS 32
@@ -506,15 +507,14 @@ static Flight *fl_new(uint32_t id, void *af, uint32_t slot, int takeoff, int pha
     for (int i = 0; i < MAX_FLIGHTS && !f; ++i) if (!g_fl[i].vid) f = &g_fl[i];
     if (!f) return NULL;
     memset(f, 0, sizeof(*f));
-    f->vid = id; f->af = af; f->slot = slot; f->takeoff = takeoff;
-    wasm_new(&f->k, &f->landing, phase);
-    f->t0 = GetTickCount(); f->min_clear = 1e9;
+    f->vid = id; f->af = af; f->slot = slot; f->takeoff = takeoff; f->phase = phase;
+    f->t0 = GetTickCount(); f->min_clear = 1e9; f->yaw = 1e9;
     return f;
 }
-static void fl_end(Flight *f) { lock_free(f->af, f->vid); wasm_end(&f->k); f->vid = 0; }
+static void fl_end(Flight *f) { lock_free(f->af, f->vid); f->vid = 0; }
 static void fl_phase(Flight *f, int ph) {
-    EV("vehicle %u: %s -> %s (tile %u)", f->vid, PH_NAME[f->landing.phase], PH_NAME[ph], af_tile(f->af));
-    f->landing.phase = ph;
+    EV("vehicle %u: %s -> %s (tile %u)", f->vid, PH_NAME[f->phase], PH_NAME[ph], af_tile(f->af));
+    f->phase = ph;
 }
 static double fl_secs(Flight *f) { return (GetTickCount() - f->t0) / 1000.0; }
 
@@ -582,16 +582,22 @@ static void hand_back(Flight *f, void *v) {
 
 /* turn rate towards a point, at most max_rate */
 static double steer_to(Flight *f, const Air *a, const double t[3], double max_rate) {
-    return iaf_fd_steer(&f->k, a->w, t, max_rate);
+    return clampd(wrap(atan2(t[0] - a->w[0], t[2] - a->w[2]) - f->yaw) * 0.8, -max_rate, max_rate);
 }
 
 /* fly a plane: turn at `rate`, towards `speed`, climbing / sinking towards height `alt`; vz_path is
  * the vertical speed of the path itself (a glide path sinks), so the plane holds it without lag */
 static void plane_fly(Flight *f, void *v, const Air *a, double dt, double rate, double speed, double alt,
                       double vz_path, double sink_max, double pitch_add) {
-    iaf_fd_cmd c;
-    iaf_fd_plane_fly(&f->k, a->w[1], dt, rate, speed, alt, vz_path, sink_max, pitch_add, &c);
-    assist_set(v, c.vel, c.yaw, c.pitch, c.roll);
+    f->yaw = wrap(f->yaw + rate * dt);
+    f->speed += clampd(speed - f->speed, -5.0 * dt, 4.0 * dt);
+    double vz = clampd(vz_path + (alt - a->w[1]) * 0.4, -sink_max, 12.0);
+    f->vz += clampd(vz - f->vz, -8.0 * dt, 8.0 * dt);
+    double hs = sqrt(fmax(f->speed * f->speed - f->vz * f->vz, 100.0));
+    double nv[3] = {sin(f->yaw) * hs, f->vz, cos(f->yaw) * hs};
+    double roll = P_BANK_SIGN * atan(rate * f->speed / 9.81);
+    f->roll += clampd(roll - f->roll, -0.8 * dt, 0.8 * dt);
+    assist_set(v, nv, f->yaw, atan2(f->vz, hs) + pitch_add, f->roll);
 }
 
 /* never lower than `margin` over the ground under the aircraft, `ahead_s` seconds ahead and at t */
@@ -620,75 +626,111 @@ static void plane_land(Flight *f, void *v, const Air *a, double dt) {
     Plan *pl = plane_plan(f->af);
     Rwy r;
     if (!runway(f->af, pl->rev, &r)) return;
-    iaf_landing_input in;
-    memset(&in, 0, sizeof(in));
-    in.runway = r;
-    memcpy(in.pos, a->w, sizeof(in.pos));
-    in.slope = pl->slope; in.h0 = pl->h0; in.cruise = pl->cruise;
-    /* These are the only phases that attempted acquisition in the original director. */
-    int old_phase = f->landing.phase;
-    if (old_phase == PH_HOLD || old_phase == PH_INBOUND) in.runway_granted = lock_take(f->af, f->vid);
-    iaf_landing_output o;
-    /* Stage the result: phase logging / lock release keep their original host-side order. */
-    iaf_landing_state next = f->landing;
-    iaf_landing_step(&next, &f->k, &in, &o);
-    double s = o.s, lat = o.lat, h = o.height, ry = r.thr[1];
+    double s, lat, t[3];
+    rwy_frame(&r, a->w[0], a->w[2], &s, &lat);
+    double ry = r.thr[1], h = a->w[1] - ry, yl = rwy_yaw(&r);
+    double fin = (pl->cruise - pl->h0) / pl->slope + 600.0;   /* length of the straight final */
+    double rate = 0.0, speed = P_SPEED, alt = ry + pl->cruise, sink = 15.0, pitch = 0.0, vz_path = 0.0;
     D.dbg[0] = s; D.dbg[1] = lat; D.dbg[4] = a->vs; D.dbg[5] = h;
-    if (o.action == IAF_LAND_GO_AROUND || o.action == IAF_LAND_ABORT) {
-        f->landing.go_arounds = next.go_arounds;
-        EV("vehicle %u: go-around %d (s %.0f m, lateral %.0f m, height %.0f m)", f->vid, f->landing.go_arounds, s, lat, h);
-        if (o.action == IAF_LAND_ABORT) {
-            EV("vehicle %u: landing ABORTED after 3 go-arounds (tile %u)", f->vid, af_tile(f->af));
-            hand_back(f, v);
-            fl_end(f);
+    rwy_point(&r, s, 0.0, t);
+
+    switch (f->phase) {
+    case PH_HOLD: {                                   /* runway busy: orbit beside the pattern */
+        if (lock_take(f->af, f->vid)) { fl_phase(f, PH_INBOUND); return; }
+        double c[3];
+        rwy_point(&r, fin * 0.5, f->side * (P_WIDTH + 1500.0), c);
+        double ang = atan2(a->w[0] - c[0], a->w[2] - c[2]) + 0.6;
+        t[0] = c[0] + sin(ang) * 700.0; t[2] = c[2] + cos(ang) * 700.0;
+        rate = steer_to(f, a, t, P_TURN_RATE);
+        break;
+    }
+    case PH_INBOUND: {
+        if (!lock_take(f->af, f->vid)) { f->side = lat >= 0 ? 1 : -1; fl_phase(f, PH_HOLD); return; }
+        if (s > 0.6 * fin && fabs(lat) < 0.3 * s && fabs(wrap(yl - f->yaw)) < 0.8) { fl_phase(f, PH_FINAL); return; }
+        if (!f->side) f->side = lat >= 0 ? 1 : -1;
+        int outbound = fabs(wrap(yl + 3.141592653589793 - f->yaw)) < 0.6;
+        if (s > -400.0 && s < fin - 300.0 && fabs(lat - f->side * P_WIDTH) < 350.0 && outbound) { fl_phase(f, PH_DOWNWIND); return; }
+        rwy_point(&r, -300.0, f->side * P_WIDTH, t);       /* downwind entry, abeam the runway */
+        rate = steer_to(f, a, t, P_TURN_RATE);
+        if (hypot(t[0] - a->w[0], t[2] - a->w[2]) < 300.0) fl_phase(f, PH_DOWNWIND);
+        break;
+    }
+    case PH_DOWNWIND:
+        rwy_point(&r, fmin(s + 800.0, fin + 600.0), f->side * P_WIDTH, t);
+        rate = steer_to(f, a, t, P_TURN_RATE);
+        if (s >= fin) fl_phase(f, PH_BASE);
+        break;
+    case PH_BASE:                                     /* full-rate 180 deg turn towards the axis */
+        rate = -f->side * P_TURN_RATE;
+        speed = 70.0;
+        if (fabs(wrap(yl - f->yaw)) < 0.3) fl_phase(f, PH_FINAL);
+        break;
+    case PH_FINAL: {
+        double glide = clampd(pl->slope * (s + P_AIM), 0.0, pl->cruise);
+        int off = (s < -0.85 * r.len) || (s < 300.0 && fabs(lat) > 60.0) || (s < 800.0 && h > glide + 80.0) ||
+                  (s < 1500.0 && fabs(wrap(yl - f->yaw)) > 1.2);
+        if (off) {                                    /* go round: the pattern again */
+            f->go_arounds++;
+            EV("vehicle %u: go-around %d (s %.0f m, lateral %.0f m, height %.0f m)", f->vid, f->go_arounds, s, lat, h);
+            if (f->go_arounds >= 3) {
+                EV("vehicle %u: landing ABORTED after 3 go-arounds (tile %u)", f->vid, af_tile(f->af));
+                hand_back(f, v);
+                fl_end(f);
+                return;
+            }
+            lock_free(f->af, f->vid);
+            f->side = lat >= 0 ? 1 : -1;
+            fl_phase(f, PH_INBOUND);
             return;
         }
-        lock_free(f->af, f->vid);
-    }
-    if (o.gear_down) A->vehicle_gear(v, 1);
-    f->landing = next;
-    /* fl_phase logs old -> new, and publishes the new phase after logging. */
-    f->landing.phase = old_phase;
-    if (next.phase != old_phase) fl_phase(f, next.phase);
-    if (o.action == IAF_LAND_RETURN || o.action == IAF_LAND_GO_AROUND) return;
-    if (o.check_touchdown) {
-        /* Gear deployment above precedes this SDK contact read, as before extraction. */
-        next = f->landing;
-        if (wb_touch(&f->k, &next, s, h, main_gear_down(v), a->vs)) {
-            f->landing.td_speed = next.td_speed;
-            SI(v, CC2X_VEHICLE_DOCK_STATE, CC2X_DOCK_TAXI);
+        rwy_point(&r, s - fmax(250.0, 2.5 * fabs(lat)), 0.0, t);
+        rate = steer_to(f, a, t, P_TURN_RATE);
+        alt = ry + glide;
+        speed = s < 2000.0 ? P_FINAL_SPEED : P_SPEED;
+        sink = fmax(25.0, pl->slope * P_FINAL_SPEED + 6.0);
+        if (glide > 0.0 && glide < pl->cruise) vz_path = -pl->slope * f->speed;
+        if (s < 2500.0 && !f->gear_set) { A->vehicle_gear(v, 1); f->gear_set = 1; }
+        if (s < 1000.0 && fabs(lat) > f->max_lat) f->max_lat = fabs(lat);
+        if (s < 150.0 && (main_gear_down(v) || h < 2.5 || (s < 0.0 && h < 8.0))) {   /* touchdown (the wire) */
+            f->td_speed = a->vs;
+            SI(v, CC2X_VEHICLE_DOCK_STATE, CC2X_DOCK_TAXI);   /* no new orders from here on (like vanilla) */
             as_ground(v);
             A->vehicle_gear(v, 1);
-            iaf_landing_rollout_begin(&f->k, a->vel);
-            fl_phase(f, next.phase);
+            f->speed = sqrt(a->vel[0] * a->vel[0] + a->vel[2] * a->vel[2]);
+            fl_phase(f, PH_ROLLOUT);
             return;
         }
+        break;
     }
-    if (o.action == IAF_LAND_ROLLOUT) {
-        double vy = main_gear_down(v) ? fmin(a->vel[1], 0.0) : -3.0;
-        iaf_fd_cmd c;
-        int stopped = iaf_fd_plane_rollout(&f->k, &r, s, lat, dt, vy, &c);
-        assist_set(v, c.vel, c.yaw, c.pitch, c.roll);
-        fl_target(v, o.target, ry, 0.0);
-        if (stopped) {
+    case PH_ROLLOUT: {                                /* braked like by the carrier's arresting wire */
+        double remain = r.len + s;
+        double dec = clampd(f->speed * f->speed / (2.0 * fmax(remain - 30.0, 15.0)), 4.0, 20.0);
+        f->speed = fmax(f->speed - dec * dt, 0.0);
+        f->yaw = wrap(f->yaw + clampd(wrap(yl - f->yaw), -0.3 * dt, 0.3 * dt));
+        double side_v = clampd(-lat * 0.5, -3.0, 3.0);
+        double vy = main_gear_down(v) ? fmin(a->vel[1], 0.0) : -3.0;   /* still floating: down onto the wheels */
+        double nv[3] = {sin(f->yaw) * f->speed - r.az * side_v, vy, cos(f->yaw) * f->speed + r.ax * side_v};
+        assist_set(v, nv, f->yaw, 0.0, 0.0);
+        fl_target(v, t, ry, 0.0);
+        if (f->speed < 2.0) {
             park(f, v, h);
             EV("vehicle %u: LANDED (plane) tile %u hangar %u in %.0f s, go-arounds %d, final max lateral %.0f m, "
                "min clearance %.0f m, touchdown %.0f m/s", f->vid, af_tile(f->af), f->slot, fl_secs(f),
-               f->landing.go_arounds, f->landing.max_lat, f->min_clear, f->landing.td_speed);
+               f->go_arounds, f->max_lat, f->min_clear, f->td_speed);
             fl_end(f);
         }
         return;
     }
-    double alt = o.alt;
-    if (o.terrain_floor) {
-        double fl = ground_floor(a, o.target, 5.0, P_MARGIN);
+    }
+    if (!(f->phase == PH_FINAL && s < 600.0)) {
+        double fl = ground_floor(a, t, 5.0, P_MARGIN);
         if (alt < fl) alt = fl;
         double clear = a->w[1] - probe_ground(a->w[0], a->w[2], NULL);
         if (clear < f->min_clear) f->min_clear = clear;
     }
-    plane_fly(f, v, a, dt, o.rate, o.speed, alt, o.vz_path, o.sink, 0.0);
-    fl_target(v, o.target, alt, 80.0);
-    D.dbg[2] = f->landing.phase; D.dbg[3] = alt; D.dbg[6] = o.rate;
+    plane_fly(f, v, a, dt, rate, speed, alt, vz_path, sink, pitch);
+    fl_target(v, t, alt, 80.0);
+    D.dbg[2] = f->phase; D.dbg[3] = alt; D.dbg[6] = rate;
 }
 
 /* ---- plane takeoff ------------------------------------------------------------------------------ */
@@ -699,8 +741,8 @@ static void plane_takeoff(Flight *f, void *v, const Air *a, double dt) {
     double s, lat, t[3], ry = r.thr[1], yl = rwy_yaw(&r);
     rwy_frame(&r, a->w[0], a->w[2], &s, &lat);
     double h = a->w[1] - ry;
-    D.dbg[0] = s; D.dbg[1] = lat; D.dbg[4] = a->vs; D.dbg[5] = h; D.dbg[2] = f->landing.phase;
-    if (f->landing.phase == PH_WAIT) {
+    D.dbg[0] = s; D.dbg[1] = lat; D.dbg[4] = a->vs; D.dbg[5] = h; D.dbg[2] = f->phase;
+    if (f->phase == PH_WAIT) {
         if (!lock_take(f->af, f->vid)) return;
         rwy_point(&r, -25.0, 0.0, t);                 /* lined up just past the threshold */
         t[1] = ry + clampd(f->stand, 0.3, 4.0);
@@ -709,17 +751,19 @@ static void plane_takeoff(Flight *f, void *v, const Air *a, double dt) {
         as_ground(v);
         A->vehicle_gear(v, 1);
         A->vehicle_brakes(v, 0.0f, 1.0f);
-        iaf_fd_kin_line_up(&f->k, yl);
+        f->yaw = yl; f->speed = 0.0; f->vz = 0.0; f->roll = 0.0;
         fl_phase(f, PH_ROLL);
         return;
     }
     rwy_point(&r, -(r.len + 3000.0), 0.0, t);         /* straight out along the runway */
-    if (f->landing.phase == PH_ROLL) {
-        iaf_fd_cmd c;
-        int rotate = iaf_fd_plane_takeoff_roll(&f->k, &r, lat, dt, a->vel[1], &c);   /* rotate: vz = 0 */
-        assist_set(v, c.vel, c.yaw, c.pitch, c.roll);
+    if (f->phase == PH_ROLL) {
+        f->speed += 9.0 * dt;
+        f->yaw = yl;
+        double side_v = clampd(-lat * 0.5, -3.0, 3.0);
+        double nv[3] = {sin(yl) * f->speed - r.az * side_v, clampd(a->vel[1], -5.0, 1.0), cos(yl) * f->speed + r.ax * side_v};
+        assist_set(v, nv, yl, 0.0, 0.0);
         fl_target(v, t, ry + 200.0, 80.0);
-        if (rotate) { as_flying(v); fl_phase(f, PH_CLIMB); }
+        if (f->speed >= P_ROTATE_SPEED) { as_flying(v); f->vz = 0.0; fl_phase(f, PH_CLIMB); }
         return;
     }
     double alt = ry + 250.0;
@@ -729,7 +773,7 @@ static void plane_takeoff(Flight *f, void *v, const Air *a, double dt) {
     if (h > 30.0 && clear < f->min_clear) f->min_clear = clear;
     plane_fly(f, v, a, dt, steer_to(f, a, t, P_TURN_RATE), P_SPEED, alt, 0.0, 15.0, 0.0);
     fl_target(v, t, alt, 80.0);
-    if (h > 20.0 && f->landing.gear_set == 0) { A->vehicle_gear(v, 0); f->landing.gear_set = 1; }
+    if (h > 20.0 && f->gear_set == 0) { A->vehicle_gear(v, 0); f->gear_set = 1; }
     if (h > P_HANDOFF_HEIGHT && s < -(r.len + 300.0)) {
         hand_back(f, v);
         EV("vehicle %u: TOOK OFF (plane) tile %u in %.0f s, min clearance %.0f m", f->vid, af_tile(f->af),
@@ -744,8 +788,8 @@ static void heli_land(Flight *f, void *v, const Air *a, double dt) {
     pad_world(f->af, f->slot, pad);
     double dx = pad[0] - a->w[0], dz = pad[2] - a->w[2], d = sqrt(dx * dx + dz * dz), h = a->w[1] - pad[1];
     double nv[3], pitch = 0.0, alt = 0.0;
-    D.dbg[0] = d; D.dbg[4] = a->vs; D.dbg[5] = h; D.dbg[2] = f->landing.phase;
-    if (f->landing.phase == PH_H_INBOUND) {
+    D.dbg[0] = d; D.dbg[4] = a->vs; D.dbg[5] = h; D.dbg[2] = f->phase;
+    if (f->phase == PH_H_INBOUND) {
         /* down an approach line (~14 deg) to a hover 15 m over the pad, braking ~2 m/s^2 to stop over
          * it; above the line it slows down until the descent has caught up */
         alt = clampd(15.0 + 0.25 * d, 15.0, H_CRUISE);
@@ -759,15 +803,15 @@ static void heli_land(Flight *f, void *v, const Air *a, double dt) {
         double excess = h - alt;
         if (excess > 20.0) want = fmin(want, fmax(6.0, H_SPEED * (1.0 - (excess - 20.0) / 120.0)));
         double ux = d > 0.5 ? dx / d : 0.0, uz = d > 0.5 ? dz / d : 0.0;
-        double ex = ux * want - f->k.hv[0], ez = uz * want - f->k.hv[1], e = sqrt(ex * ex + ez * ez), lim = 4.0 * dt;
+        double ex = ux * want - f->hv[0], ez = uz * want - f->hv[1], e = sqrt(ex * ex + ez * ez), lim = 4.0 * dt;
         if (e > lim) { ex *= lim / e; ez *= lim / e; }          /* velocity changes smoothly (<= 4 m/s^2) */
-        f->k.hv[0] += ex; f->k.hv[1] += ez;
-        f->k.speed = sqrt(f->k.hv[0] * f->k.hv[0] + f->k.hv[1] * f->k.hv[1]);
-        nv[0] = f->k.hv[0]; nv[2] = f->k.hv[1];
+        f->hv[0] += ex; f->hv[1] += ez;
+        f->speed = sqrt(f->hv[0] * f->hv[0] + f->hv[1] * f->hv[1]);
+        nv[0] = f->hv[0]; nv[2] = f->hv[1];
         nv[1] = clampd((alt - h) * 0.5, -10.0, 5.0);
-        if (f->k.speed > 5.0) f->k.yaw = wrap(f->k.yaw + clampd(wrap(atan2(f->k.hv[0], f->k.hv[1]) - f->k.yaw), -0.7 * dt, 0.7 * dt));
-        pitch = -0.12 * f->k.speed / H_SPEED;
-        if (d < 3.0 && f->k.speed < 1.5) { f->t_desc = GetTickCount(); fl_phase(f, PH_H_DESCEND); }
+        if (f->speed > 5.0) f->yaw = wrap(f->yaw + clampd(wrap(atan2(f->hv[0], f->hv[1]) - f->yaw), -0.7 * dt, 0.7 * dt));
+        pitch = -0.12 * f->speed / H_SPEED;
+        if (d < 3.0 && f->speed < 1.5) { f->t_desc = GetTickCount(); fl_phase(f, PH_H_DESCEND); }
     } else {                                          /* straight down onto the pad */
         double k = d > 0.1 ? fmin(0.5 * d, 2.0) / d : 0.0;
         nv[0] = dx * k; nv[2] = dz * k;
@@ -781,8 +825,8 @@ static void heli_land(Flight *f, void *v, const Air *a, double dt) {
             return;
         }
     }
-    assist_set(v, nv, f->k.yaw, pitch, 0.0);
-    fl_target(v, pad, pad[1] + alt, fmax(f->k.speed, 10.0));
+    assist_set(v, nv, f->yaw, pitch, 0.0);
+    fl_target(v, pad, pad[1] + alt, fmax(f->speed, 10.0));
 }
 
 static void heli_takeoff(Flight *f, void *v, const Air *a, double dt) {
@@ -794,15 +838,15 @@ static void heli_takeoff(Flight *f, void *v, const Air *a, double dt) {
         put_at(v, p, yaw);
         SI(v, CC2X_VEHICLE_DOCK_STATE, CC2X_DOCK_UNDOCKING);
         as_flying(v);
-        f->k.yaw = yaw;
+        f->yaw = yaw;
         f->lined = 1;
         return;
     }
     double h = a->w[1] - pad[1];
     double nv[3] = {(pad[0] - a->w[0]) * 0.3, 4.0, (pad[2] - a->w[2]) * 0.3};
-    assist_set(v, nv, f->k.yaw, 0.0, 0.0);
+    assist_set(v, nv, f->yaw, 0.0, 0.0);
     fl_target(v, pad, pad[1] + H_HANDOFF_HEIGHT + 10.0, 10.0);
-    D.dbg[5] = h; D.dbg[2] = f->landing.phase;
+    D.dbg[5] = h; D.dbg[2] = f->phase;
     if (h > H_HANDOFF_HEIGHT) {
         hand_back(f, v);
         EV("vehicle %u: TOOK OFF (helicopter) tile %u in %.0f s", f->vid, af_tile(f->af), fl_secs(f));
@@ -877,7 +921,7 @@ static void fly_all(void *af) {
         if (!f->vid || f->af != af) continue;
         void *v = vehicle_by_id(f->vid);
         if (!v) {
-            EV("vehicle %u: LOST during %s (tile %u)", f->vid, PH_NAME[f->landing.phase], af_tile(af));
+            EV("vehicle %u: LOST during %s (tile %u)", f->vid, PH_NAME[f->phase], af_tile(af));
             hangar_release(af, f->vid);
             fl_end(f);
             continue;
@@ -893,11 +937,17 @@ static void fly_all(void *af) {
         LARGE_INTEGER now, freq;
         QueryPerformanceCounter(&now);
         QueryPerformanceFrequency(&freq);
-        double dt;
-        int64_t prev = f->t.QuadPart;
+        double dt = f->t.QuadPart ? (double)(now.QuadPart - f->t.QuadPart) / (double)freq.QuadPart : 1.0 / 30;
         f->t = now;
-        if (!iaf_fd_tick_dt(now.QuadPart, prev, freq.QuadPart, &dt)) continue;
-        iaf_fd_kin_seed(&f->k, a.vel, f->takeoff);    /* first tick: from the current motion */
+        if (dt <= 0.0) continue;
+        if (dt > 0.1) dt = 0.1;
+        if (f->yaw > 1e8) {                           /* first tick: from the current motion */
+            double vh = sqrt(a.vel[0] * a.vel[0] + a.vel[2] * a.vel[2]);
+            f->yaw = vh > 5.0 ? atan2(a.vel[0], a.vel[2]) : 0.0;
+            f->speed = f->takeoff ? 0.0 : vh;
+            f->vz = a.vel[1];
+            f->hv[0] = a.vel[0]; f->hv[1] = a.vel[2];
+        }
         if (is_wing(v)) { if (f->takeoff) plane_takeoff(f, v, &a, dt); else plane_land(f, v, &a, dt); }
         else { if (f->takeoff) heli_takeoff(f, v, &a, dt); else heli_land(f, v, &a, dt); }
         STAT(GLIDE_FIXES);
@@ -930,23 +980,20 @@ static void fd_takeoff(void *v, void *wp) {
 /* a new order cancels a landing until touchdown; returns 1 when it did */
 static int fd_cancel(void *v) {
     Flight *f = fl_find(vid(v));
-    if (!f || f->takeoff || f->landing.phase == PH_ROLLOUT) return 0;
+    if (!f || f->takeoff || f->phase == PH_ROLLOUT) return 0;
     hand_back(f, v);
     STAT(LAND_CANCELLED);
-    EV("vehicle %u: landing cancelled by a new order (%s)", f->vid, PH_NAME[f->landing.phase]);
+    EV("vehicle %u: landing cancelled by a new order (%s)", f->vid, PH_NAME[f->phase]);
     fl_end(f);
     return 1;
 }
 
 static void on_airfield_tick(void *af, void *user) {
-    if (!g_on || !iaf_wasm_ready() || GetCurrentThreadId()!=wasm_thread || wasm_entered || !A->server()) return;
-    if(setjmp(wasm_abort)) {wasm_entered=0;return;}
-    wasm_entered=1;
+    if (!g_on || !A->server()) return;
     take_from_runway(af);
     take_from_queue(af);
     if (g_tick % 32 == 5) adopt_orphans(af);
     fly_all(af);
-    wasm_entered=0;
 }
 
 /* ---- server tick: pending landings, airfield table for Lua ------------------------------------ */
@@ -1002,7 +1049,6 @@ static void scan_airfield(uint32_t tid) {
 }
 
 static void on_tick(void *srv, void *user) {
-    if(!g_on || !wasm_start() || GetCurrentThreadId()!=wasm_thread || wasm_entered) return;
     ++g_tick;
     if (D.scan_tile) { scan_airfield((uint32_t)D.scan_tile); D.scan_tile = 0; }
     STAT(SERVER_TICKS);
@@ -1018,21 +1064,15 @@ static void on_tick(void *srv, void *user) {
             void *island = A->ref(tile, CC2X_TILE_ISLAND, 0);
             if (!island) continue;                         /* not loaded yet: keep waiting */
             if (!airfield_count(island)) { g_pending[i].vid = 0; continue; }
-            if (!do_land(v, island)) continue;             /* full: retry later */
+            if (!do_land(v, island, 1)) continue;          /* full: retry later */
             g_pending[i].vid = 0;
             STAT(LAND_QUEUED);
-            A->waypoints_sync(v);                          /* clients: waypoints cleared */
         }
     }
     if (g_tick % 64 == 1) refresh_table();
 }
 
 static void on_session(void *srv, int started, void *user) {
-    /* No init/IO here: session reset may arrive before the first safe tick. */
-    if(iaf_wasm_ready()) {
-        if(GetCurrentThreadId()!=wasm_thread || wasm_entered || !iaf_wasm_reset()) {g_on=0;return;}
-    }
-    memset(wasm_slots,0,sizeof wasm_slots);
     memset(g_pending, 0, sizeof(g_pending));
     memset(g_fl, 0, sizeof(g_fl));
     memset(g_lock, 0, sizeof(g_lock));
@@ -1062,43 +1102,21 @@ static int lua_count(cc2x_lua *L) {
 /* planes() -> true when fixed-wing landings are enabled */
 static int lua_planes(cc2x_lua *L) { A->lua_pushboolean(L, g_planes); return 1; }
 
-/* session() must be captured with the UI command's source data, not refreshed for old IDs. */
-static int lua_session(cc2x_lua *L) {
-    uint64_t token = A->session_token();
-    /* The game Lua bridge represents integers as int64_t; fail closed if unrepresentable. */
-    A->lua_pushinteger(L, token <= INT64_MAX ? (int64_t)token : 0);
-    return 1;
+/* land(vehicle_id, tile_id): order a landing directly (no waypoint needed). Runs on the server
+ * thread at the next tick; returns true when the request was posted. */
+static void land_post(void *srv, void *user) {
+    uint32_t id = (uint32_t)((uintptr_t)user >> 16), tid = (uint32_t)((uintptr_t)user & 0xffff);
+    void *v = vehicle_by_id(id);
+    if (v) (void)land(v, tid, 1);
 }
-
-/* Logic thread only: resolve the current world's IDs and revalidate gameplay ownership.
- * expected_team is a stale-data check, NOT authenticated peer authority (not exposed by SDK 5).
- * This trusted local Lua entry point is not a network RPC; normal MP orders use game waypoints.
- */
-static void land_post(uint32_t id, uint32_t tid, uint32_t expected_team) {
-    if (!g_on || !A->server()) return;
-    void *v = vehicle_by_id(id), *tile = tile_by_id(tid);
-    if (!v || !tile || !is_human(v) ||
-        GI(v, CC2X_VEHICLE_TEAM) != (int64_t)expected_team ||
-        GI(tile, CC2X_TILE_TEAM) != (int64_t)expected_team) return;
-    if (land(v, tid) == 1) A->waypoints_sync(v);
-}
-
-/* land(vehicle_id, tile_id, session_token, expected_team) -> accepted, reason.
- * true means queued, not that the later world validation/landing will succeed.
- * Old two-argument callers fail closed: never stamp old IDs with a fresh session token.
- */
 static int lua_land(cc2x_lua *L) {
-    int64_t id, tid, token, team;
-    const char *reason = "invalid_arguments";
-    if (A->lua_tointeger(L, 1, &id) && A->lua_tointeger(L, 2, &tid) &&
-        A->lua_tointeger(L, 3, &token) && A->lua_tointeger(L, 4, &team) &&
-        id > 0 && id <= UINT32_MAX && tid > 0 && tid <= UINT32_MAX &&
-        token > 0 && team >= 0 && team <= UINT32_MAX)
-        reason = iaf_landing_submit(A, (uint64_t)token, (uint32_t)id, (uint32_t)tid,
-                                    (uint32_t)team, land_post);
-    A->lua_pushboolean(L, reason == NULL);
-    A->lua_pushstring(L, reason ? reason : "queued");
-    return 2;
+    int64_t id, tid;
+    int ok = A->lua_tointeger(L, 1, &id) && A->lua_tointeger(L, 2, &tid) &&
+             id > 0 && id < 0x10000 && tid > 0 && tid < 0x10000 &&
+             Session->post(Session->generation(), land_post,
+                                   (void *)(uintptr_t)((id << 16) | tid));
+    A->lua_pushboolean(L, ok);
+    return 1;
 }
 
 /* test channel used by native/tools: returns cmd, a, b, c, d once */
@@ -1115,8 +1133,13 @@ static int lua_test_poll(cc2x_lua *L) {
 
 /* ---- load ------------------------------------------------------------------------------------- */
 CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
-    if (!iaf_session_api(api)) {
-        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 5 with session-bound work (this is %s): inactive; no legacy fallback", api->sdk_version);
+    if (api->api_version < 4 || api->size < CC2X_API_V4_SIZE) {
+        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X API 4 (this is %s): inactive", api->sdk_version);
+        return 0;
+    }
+    Session = cc2x_session_from_core((const void *)api->server_post);
+    if (!Session) {
+        api->log(PLUGIN, CC2X_LOG_WARN, "needs CC2X session extension v1: inactive");
         return 0;
     }
     A = api;
@@ -1141,7 +1164,6 @@ CC2X_EXPORT int cc2x_plugin_load(const cc2x_api *api) {
     api->on_session(on_session, NULL);
     api->lua_add(PLUGIN, "count", lua_count);
     api->lua_add(PLUGIN, "planes", lua_planes);
-    api->lua_add(PLUGIN, "session", lua_session);
     api->lua_add(PLUGIN, "land", lua_land);
     api->lua_add(PLUGIN, "test_poll", lua_test_poll);
     api->lua_feature(PLUGIN);

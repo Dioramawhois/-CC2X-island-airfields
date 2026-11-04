@@ -8,18 +8,16 @@ Uses a separate CC2X checkout. Default: ../cc2x beside this repository.
 Override with --sdk PATH or CC2X_SDK_DIR; override the compiler with --zig PATH.
 """
 import argparse
+import hashlib
+import json
+import subprocess
 from pathlib import Path
 from sdk_support import load_sdk, sdk_path
 
 HERE = Path(__file__).resolve().parent
 MOD = HERE.parent
 
-WASM3 = HERE / 'third_party' / 'wasm3' / 'source'
-# The production core and module wrapper are compiled only into the Wasm asset, never the DLL.
-SOURCES = [HERE / 'plugin' / 'island_airfields.c', HERE / 'plugin' / 'wasm_host.c',
-           *[WASM3 / (name + '.c') for name in (
-               'm3_bind', 'm3_code', 'm3_compile', 'm3_core', 'm3_deterministic', 'm3_env',
-               'm3_exec', 'm3_function', 'm3_info', 'm3_module', 'm3_parse', 'm3_validate')]]
+SOURCE = HERE / 'plugin' / 'island_airfields.c'
 OUT = HERE / 'dist' / 'cc2x_island_airfields.dll'
 
 
@@ -28,17 +26,26 @@ def main():
     ap.add_argument('--sdk', type=Path, help='separate CC2X repository')
     ap.add_argument('--zig', type=Path, help='Zig 0.15.2 executable')
     args = ap.parse_args()
-    OUT.unlink(missing_ok=True)      # a failed build must not leave an older DLL behind
     folder = sdk_path(args.sdk)
     sdk = load_sdk(folder)
     if args.zig:
         sdk.ZIG = args.zig.resolve()
-    sdk.CFLAGS.extend(['-I', str(WASM3), '-Dd_m3HasGasMetering=1', '-Dd_m3HasValidation=1'])
-    try:
-        sdk.plugin(SOURCES, OUT)
-    except BaseException:
-        OUT.unlink(missing_ok=True)  # also discard a partially written compiler output
-        raise
+    sdk.plugin(SOURCE, OUT)
+    def sha(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    sources = [SOURCE, HERE / 'build.py', HERE / 'sdk_support.py']
+    report = {'artifact': OUT.name, 'artifact_sha256': sha(OUT),
+              'compiler_sha256': sha(sdk.ZIG),
+              'sdk_header_sha256': sha(folder / 'include/cc2x.h'),
+              'sdk_source_commit': subprocess.check_output(
+                  ['git', '-C', str(folder), 'rev-parse', 'HEAD'], text=True).strip(),
+              'source_commit': subprocess.check_output(
+                  ['git', '-C', str(MOD), 'rev-parse', 'HEAD'], text=True).strip(),
+              'source_dirty': bool(subprocess.check_output(
+                  ['git', '-C', str(MOD), 'status', '--porcelain']).strip()),
+              'source_sha256': {p.relative_to(MOD).as_posix(): sha(p) for p in sources},
+              'game_runtime_tested': False}
+    OUT.with_suffix('.build.json').write_text(json.dumps(report, indent=2) + '\n')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,5 @@
+{
+  "id": "island_airfields",
+  "scripts": ["bridge/main.lua"],
+  "rules": "bridge/rules.lua"
+}

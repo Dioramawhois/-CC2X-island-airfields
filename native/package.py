@@ -1,79 +1,56 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Build the finished mod folder - exactly what the Steam Workshop item contains.
-
-    python native/package.py                  -> dist/Island Airfields/
-    python native/package.py --install        -> also copies it to %APPDATA%/Carrier Command 2/mods/
-
-dist/Island Airfields/
-    mod.xml, thumbnail.png
-    content/scripts/*.lua          the game's screens + our changes (lua/build_lua.py)
-    content/cc2x/cc2x_island_airfields.dll   the plugin with its embedded interpreter
-    content/cc2x/cc2x_island_airfields_core.wasm   the same portable module on every host
-    content/cc2x/wasm3-LICENSE.txt    interpreter license
-                                   (inside content: the game's Workshop upload takes only content)
-"""
+"""Developer packaging through the external SDK. Never installs or runs a mod."""
 import argparse
 import hashlib
-import os
-import shutil
+import importlib.util
+import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
+from xml.etree import ElementTree as ET
+from sdk_support import sdk_path
 
 ROOT = Path(__file__).resolve().parents[1]
-NAME = 'Island Airfields'
-ARTIFACTS = ('cc2x_island_airfields.dll', 'cc2x_island_airfields_core.wasm')
-
-
-def run(*args):
-    subprocess.run([sys.executable, *[str(a) for a in args]], check=True)
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument('--install', action='store_true', help='copy into the local mods folder for testing')
-    ap.add_argument('--game', help='game folder (for the game scripts the Lua patches apply to)')
-    ap.add_argument('--sdk', type=Path, help='separate CC2X repository')
-    ap.add_argument('--zig', type=Path, help='Zig 0.15.2 executable')
-    a = ap.parse_args()
-    out = ROOT / 'dist' / NAME
-    if out.exists():
-        shutil.rmtree(out)           # no old package may survive a failed rebuild
-    native_dist = ROOT / 'native' / 'dist'
-    for name in ARTIFACTS:
-        (native_dist / name).unlink(missing_ok=True)
-    run(ROOT / 'lua' / 'build_lua.py', *(['--game', a.game] if a.game else []))
-    zig = ['--zig', a.zig] if a.zig else []
-    run(ROOT / 'native' / 'build.py', *(['--sdk', a.sdk] if a.sdk else []), *zig)
-    run(ROOT / 'native' / 'build_wasm.py', *zig)
-    hashes = {name: hashlib.sha256((native_dist / name).read_bytes()).digest() for name in ARTIFACTS}
-    (out / 'content' / 'scripts').mkdir(parents=True)
-    (out / 'content' / 'cc2x').mkdir()
-    shutil.copy2(ROOT / 'mod.xml', out / 'mod.xml')
-    shutil.copy2(ROOT / 'thumbnail.png', out / 'thumbnail.png')
-    for lua in sorted((ROOT / 'content' / 'scripts').glob('*.lua')):
-        shutil.copy2(lua, out / 'content' / 'scripts' / lua.name)
-    try:
-        for name in ARTIFACTS:
-            dest = out / 'content' / 'cc2x' / name
-            shutil.copy2(native_dist / name, dest)
-            if hashlib.sha256(dest.read_bytes()).digest() != hashes[name]:
-                raise ValueError('packaged artifact differs from build: %s' % name)
-        license_file = ROOT / 'native' / 'third_party' / 'wasm3' / 'LICENSE'
-        shutil.copy2(license_file, out / 'content' / 'cc2x' / 'wasm3-LICENSE.txt')
-    except BaseException:
-        shutil.rmtree(out)
-        raise
-    for f in sorted(out.rglob('*')):
-        if f.is_file():
-            print('  %-50s %8d' % (f.relative_to(out).as_posix(), f.stat().st_size))
-    print('mod folder:', out)
-    if a.install:
-        dest = Path(os.environ['APPDATA']) / 'Carrier Command 2' / 'mods' / NAME
-        if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(out, dest)
-        print('installed to', dest, '- enable it in the game: Mods menu')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--zig', type=Path)
+    parser.add_argument('--game', type=Path)
+    parser.add_argument('--luac', type=Path, required=True, help='real Lua 5.3 syntax checker')
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    destination = args.output or ROOT / 'dist/Island Airfields'
+    if destination.exists() or destination.is_symlink():
+        raise ValueError('Existing output is preserved')
+    sdk = sdk_path(args.sdk)
+    subprocess.run([sys.executable, str(ROOT / 'lua/build_lua.py'),
+                    *(['--game', str(args.game)] if args.game else [])], check=True)
+    subprocess.run([sys.executable, str(ROOT / 'native/build.py'), '--sdk', str(sdk),
+                    *(['--zig', str(args.zig)] if args.zig else [])], check=True)
+    spec = importlib.util.spec_from_file_location('cc2x_mod_package', sdk / 'tools/mod_package.py')
+    packager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(packager)
+    source = packager.regular(ROOT, 'mod.xml')
+    packager.validate_resource('mod.xml', source, None)
+    xml = ET.fromstring(source)
+    metadata = {**xml.attrib, 'id': '3826940003', 'version': '1.1.0-dev', 'api': 8,
+                'plugin': 'cc2x_island_airfields.dll'}
+    resources = {'thumbnail.png': packager.regular(ROOT, 'thumbnail.png')}
+    for path in sorted((ROOT / 'content/scripts').glob('*.lua')):
+        name = path.relative_to(ROOT).as_posix()
+        resources[name] = packager.regular(ROOT, name)
+    plugin = ROOT / 'native/dist/cc2x_island_airfields.dll'
+    report = json.loads(plugin.with_suffix('.build.json').read_text())
+    provenance = {'workshop_id': '3826940003',
+                  'source_mod_xml_sha256': hashlib.sha256(source).hexdigest(),
+                  'project_commit': report['source_commit'], 'project_dirty': report['source_dirty'],
+                  'patch_sha256': {p.relative_to(ROOT).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                                   for p in sorted((ROOT / 'lua').glob('*.patch'))}}
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    print(packager.package(ROOT, metadata, plugin, report, resources, destination,
+                           provenance=provenance, luac=args.luac))
 
 
 if __name__ == '__main__':

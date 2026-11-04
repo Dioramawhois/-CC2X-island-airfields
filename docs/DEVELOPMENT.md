@@ -1,3 +1,17 @@
+# Current development route
+
+The published 2.0 client beta uses the separate Lua/content implementation in
+`content/bridge`. Build it with `package_lua.py` and the explicit external CC2X
+0.8 SDK. See README, docs/MULTIPLAYER.md and workshop/installation/README.md.
+The root mod.xml now matches the published Lua package.
+
+The native C director and the earlier native/Wasm experiments below remain
+engineering references. They are not included in, or compiled for, the current
+player package. Legacy native build/test commands describe those reference
+implementations rather than the supported player release.
+
+---
+
 # Island Airfields - development notes
 
 Game: Carrier Command 2 1.5.18, Windows 32-bit. Needs **CC2X API 5** headers and runtime
