@@ -1,11 +1,11 @@
 {
   "sdk": "CC2X",
-  "tested_version": "0.8.0-client-beta.1",
+  "tested_version": "0.8.1-client-beta.1",
   "api_version": 8,
   "default_directory": "../cc2x",
   "override_argument": "--sdk",
   "override_environment": "CC2X_SDK_DIR",
-  "validation": "Native and real-Lua synthetic regressions; user-reported ordinary-host gameplay and map-marker acceptance. Remote and dedicated unverified.",
+  "validation": "Separate-addon offline validation; owner host acceptance for the earlier local prototype. New delivery requires its own manual check. Remote and dedicated unverified.",
   "required_extensions": [
     {
       "name": "cc2x.session",
@@ -16,6 +16,8 @@
   "lua_api_version": 2,
   "runtime_capabilities": [
     "lua-mod-api-v2",
-    "waypoint-origin-v1"
+    "waypoint-origin-v1",
+    "screen-extensions-v1",
+    "screen-source-edits-v1"
   ]
 }

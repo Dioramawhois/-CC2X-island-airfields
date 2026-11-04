@@ -1,6 +1,11 @@
-# Installation - Island Airfields 2.0
+# Installation - Island Airfields 2.1
 
-Windows / reviewed CC2 1.5.18-r2 client. Requires **CC2X SDK 0.8.0 client beta 1**.
+Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19.
+For Revolution, subscribe to its [original Workshop item](https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110)
+and enable **both Revolution and Island Airfields**. No combined repack or file
+replacement is required. The addon contains no Revolution files.
+
+Windows / reviewed CC2 1.5.18-r2 client. Requires **CC2X SDK 0.8.1 client beta 1**.
 
 ![Subscribe to both items, install the SDK DLL with the game closed, enable the mod and restart.](images/03-installation-flow.png)
 
@@ -21,7 +26,7 @@ steamapps/workshop/content/1489630/3833014670/content
 
 ![Explorer showing dinput8.dll in the SDK Workshop content folder.](images/01-sdk-file.png)
 
-Copy **dinput8.dll**. You can also [download that file from the exact SDK release](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/download/0.8.0-client-beta.1/dinput8.dll).
+Copy **dinput8.dll**. You can also [download that file from the exact SDK release](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/download/0.8.1-client-beta.1/dinput8.dll).
 
 ## 3. Open the game folder
 
@@ -37,7 +42,7 @@ Carrier Command 2/
 ![Explorer showing dinput8.dll beside carrier_command.exe.](images/02-game-folder.png)
 
 The screenshots illustrate file names and placement; Windows language, dates and
-your Steam library location may differ. Use the SDK 0.8 download linked above.
+your Steam library location may differ. Use the SDK 0.8.1 download linked above.
 Keep a backup of an older identified CC2X runtime; check compatibility before
 replacing a different loader.
 
@@ -54,9 +59,10 @@ The new mod contains Lua/content. It does not need a separate
 installed Island Airfields DLL out of its loading location. Keep the shared SDK
 and unrelated plugins. Enable one Island Airfields copy at a time.
 
-ModLoader must explicitly support this exact SDK 0.8 runtime for automatic
-installation. Until your build supports it, use the manual route above. Other
-mods editing the map or vehicle-control screens require a compatible merge.
+ModLoader must explicitly support this exact SDK 0.8.1 runtime for automatic
+installation. Until your build supports it, use the manual route above. The
+reviewed stock/Revolution screens use checked in-memory edits. Other screen
+versions are skipped and logged; they require a reviewed compatibility profile.
 
 ## First check
 

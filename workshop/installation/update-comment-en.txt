@@ -1,8 +1,8 @@
-Island Airfields 2.0 is out.
+Island Airfields 2.1 is out.
 
-Airfield gameplay now runs on the host through CC2X SDK. This update fixes landing cancellation, deferred queues and old requests crossing sessions. Your airfields are shown immediately in team colour, without flying over your own islands again.
+Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19. Enable the original Revolution mod and Island Airfields together. No Revolution files or complete game screens are included. Carrier deck status excludes island landings.
 
-Requires CC2X SDK 0.8.0 client beta 1:
+Requires CC2X SDK 0.8.1 client beta 1:
 https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670
 
 With the game closed, copy the SDK's dinput8.dll beside carrier_command.exe. Enable Island Airfields in Mods, then restart. Take an older manually installed Island Airfields DLL out of its loading location, if you installed one.
@@ -10,4 +10,4 @@ With the game closed, copy the SDK's dinput8.dll beside carrier_command.exe. Ena
 Screenshots and installation diagram:
 https://github.com/Dioramawhois/-CC2X-island-airfields/blob/main/workshop/installation/README.md
 
-Ordinary-host gameplay passed manual tests. A second remote client and dedicated servers remain unverified.
+Earlier host gameplay was tested; new separate delivery passed offline checks. Fresh gameplay, remote-client and dedicated acceptance remain unverified.

@@ -39,7 +39,7 @@ end
 -- [my_mod] Without CC2X the mod can only show markers. Say what is missing, on the map itself.
 function mm_draw_cc2x_notice(screen_w, screen_h)
     if mm_plugin() ~= nil or mm_remote_host() then return end
-    local line = "Island Airfields requires CC2X SDK 0.8: copy dinput8.dll beside carrier_command.exe"
+    local line = "Island Airfields requires CC2X SDK 0.8.1: copy dinput8.dll beside carrier_command.exe"
     if cc2x ~= nil then line = "Island Airfields module inactive: check the SDK version and cc2x.log" end
     update_ui_rectangle(0, screen_h - 13, screen_w, 13, color8(0, 0, 0, 220))
     update_ui_text(4, screen_h - 11, line, screen_w - 8, 0, color8(255, 190, 0, 255), 0)

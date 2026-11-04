@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location('iaf_rev_compat', ROOT/'compatibility/revolution_1_6/package.py')
+spec = importlib.util.spec_from_file_location('iaf_rev_compat', ROOT/'compatibility/revolution_1_6/profile_tools.py')
 
 class RevolutionCompatibilityTest(unittest.TestCase):
     def setUp(self):

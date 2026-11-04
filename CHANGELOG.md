@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0-client-beta.1 (2026-11-04)
+
+- Deliver Island Airfields as a separate addon alongside the original Revolution
+  1.6-19. Remove all complete screen resources and the private combined-package
+  builder. The player payload contains no Revolution files and has zero resource
+  path overlaps with it.
+- Require unified SDK 0.8.1 with hash-pinned, syntax-checked in-memory screen edits.
+  Ship only reviewed source hashes, owned insertions and owned helper Lua. Stock
+  and Revolution profiles preserve map controls and typed host landing requests.
+- Include the carrier-specific flight-deck indication fix. Keep the independent
+  host gameplay unchanged. Validate actual SDK source transformation/syntax for
+  three stock and three Revolution screens without executing third-party Lua.
+- Earlier prototype host acceptance remains historical; fresh separate-addon
+  gameplay, remote client and dedicated-server acceptance remain unverified.
+
 ## Unreleased: Revolution 1.6 local compatibility candidate
 
 - Test candidate 2: restrict flight-deck landing/queue/taxi indications to this

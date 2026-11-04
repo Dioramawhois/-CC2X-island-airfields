@@ -23,9 +23,9 @@ if __name__ == '__main__':
         raise ValueError('Passing evidence for the external SDK build is required')
     if sha(zig) != build['compiler_sha256']:
         raise ValueError('Use the verified SDK compiler')
-    inputs = [ROOT/'compatibility/revolution_1_6/ui_common.lua',
+    inputs = [ROOT/'content/cc2x/ui/ui_common.lua',
               ROOT/'native/tests/revolution_ui.lua', ROOT/'native/tests/revolution_ui_runner.c',
-              Path(__file__).resolve(), ROOT/'compatibility/revolution_1_6/carrier_traffic.lua']
+              Path(__file__).resolve(), ROOT/'content/cc2x/ui/carrier_traffic.lua']
     hashes = {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}
     objects = sorted((sdk/'build/unified/objects').glob('third_party_lua_*.obj'))
     if not objects:
