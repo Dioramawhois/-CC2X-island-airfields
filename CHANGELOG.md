@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.1-client-beta.1 (2026-11-05)
+
+- Restore the vehicle-control landing-order integration for Revolution 1.6-20.
+  The previous release's 1.6-19 profile did not match the updated screen, so the
+  SDK skipped its six typed landing-waypoint replacements and owned helper.
+
+- Add the reviewed 1.6-20 vehicle-control source profile with freshly derived
+  byte edits. Preserve Revolution's new dock-state rendering logic and all six
+  existing stock/1.6-19 profile records. Keep the independent gameplay policy,
+  Workshop identity and SDK dependency unchanged.
+- Validate complete inventories and metadata for both Revolution versions during
+  profile authoring; require all supported versions before replacing the
+  descriptor. Reject unknown inputs and conflicting edits for an identical hash.
+- Cover UTF-8 byte shifts, invalid hash-only repinning and profile retention with
+  owned fixtures. Validate actual SDK transformation/syntax for stock and both
+  Revolution versions without executing third-party Lua. Fresh 1.6-20 gameplay,
+  remote-client and dedicated-server acceptance remain unverified.
+
 ## 2.1.0-client-beta.1 (2026-11-04)
 
 - Deliver Island Airfields as a separate addon alongside the original Revolution

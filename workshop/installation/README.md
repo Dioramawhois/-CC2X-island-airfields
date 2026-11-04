@@ -1,6 +1,6 @@
 # Installation - Island Airfields 2.1
 
-Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19.
+Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19/1.6-20.
 For Revolution, subscribe to its [original Workshop item](https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110)
 and enable **both Revolution and Island Airfields**. No combined repack or file
 replacement is required. The addon contains no Revolution files.

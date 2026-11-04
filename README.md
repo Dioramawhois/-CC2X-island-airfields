@@ -1,7 +1,7 @@
 # Island Airfields
 
-**2.1.0-client-beta.1** is a separate Lua addon for stock Carrier Command 2 and
-**Revolution 1.6-19**. It requires **CC2X SDK 0.8.1-client-beta.1**. Workshop
+**2.1.1-client-beta.1** is a separate Lua addon for stock Carrier Command 2 and
+**Revolution 1.6-19 and 1.6-20**. It requires **CC2X SDK 0.8.1-client-beta.1**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
@@ -31,7 +31,7 @@ and applies reviewed edits only in memory. Unknown screen versions are skipped
 and logged. The addon shares no resource paths with the reviewed Revolution
 package, so neither mod replaces the other's screens.
 
-Profiles cover stock CC2 1.5.18-r2 and Revolution 1.6-19 map/control screens. The
+Profiles cover stock CC2 1.5.18-r2 and Revolution 1.6-19/1.6-20 map/control screens. The
 carrier deck display checks the destination carrier, excluding island landings
 and other carriers' traffic. [Compatibility design and evidence](docs/REVOLUTION_COMPATIBILITY.md).
 
@@ -53,7 +53,7 @@ python package_lua.py --sdk SDK --game GAME --luac LUAC --output NEW-ABSOLUTE-DI
 python -m unittest discover -s native/tests -p test_*.py
 python native/tests/run_lua_test.py --sdk SDK --zig ZIG
 python native/tests/run_revolution_ui_test.py --sdk SDK --zig ZIG
-python native/tests/run_addon_delivery_test.py --sdk SDK --zig ZIG --game GAME --revolution REVOLUTION
+python native/tests/run_addon_delivery_test.py --sdk SDK --zig ZIG --game GAME --revolution REVOLUTION_1_6_19 --revolution REVOLUTION_1_6_20
 ```
 
 Profile authoring reads legitimate local sources and ships only hashes and owned

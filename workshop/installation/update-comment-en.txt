@@ -1,6 +1,6 @@
 Island Airfields 2.1 is out.
 
-Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19. Enable the original Revolution mod and Island Airfields together. No Revolution files or complete game screens are included. Carrier deck status excludes island landings.
+Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together. No Revolution files or complete game screens are included. Carrier deck status excludes island landings.
 
 Requires CC2X SDK 0.8.1 client beta 1:
 https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670

@@ -3,7 +3,7 @@ Planes and helicopters can land on owned island airfields, receive hangar servic
 
 [h2]What's new[/h2]
 [list]
-[*]A separate addon for stock CC2 and Revolution 1.6-19. Enable the original Revolution mod and Island Airfields together.
+[*]A separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together.
 [*]No Revolution files, complete game screens or private gameplay DLL are included.
 [*]SDK 0.8.1 applies our small, version-checked screen changes in memory. Installed and Workshop files stay untouched.
 [*]Individual and group landing orders preserve Revolution's map controls and ordinary ground-unit routes.
@@ -23,14 +23,15 @@ Required runtime: [b]CC2X SDK 0.8.1-client-beta.1[/b]. Older SDKs lack the requi
 
 [h2]How to play[/h2]
 [list]
-[*]Land: give an airborne aircraft one waypoint near an owned airfield.
+[*]Land: on the vehicle-control map, give an airborne aircraft its first waypoint near an owned airfield. You can also move its existing first waypoint there. Later route points remain ordinary movement orders.
 [*]Launch: give a parked aircraft a new waypoint away from the island.
 [*]Cancel: replace the order before touchdown.
 [/list]
 Owned airfields are marked immediately in team colour. Planes and helicopters are enabled by default. Only the host runs the flight policy; landing requests use the game's replicated waypoint channel.
+Revolution's holomap routes the carrier; its aircraft menu offers camera and airlift actions.
 
 [h2]Beta scope[/h2]
-Windows, reviewed CC2 1.5.18-r2 and Revolution 1.6-19 screen profiles. Unknown screen versions are skipped and logged. Ordinary-host gameplay was accepted in the earlier integration prototype. The new separate delivery passes actual-SDK source/syntax checks and synthetic gameplay/UI fixtures; fresh separate-addon gameplay, a second remote client and dedicated servers remain unverified.
+Windows, reviewed CC2 1.5.18-r2 and Revolution 1.6-19/1.6-20 screen profiles. Unknown screen versions are skipped and logged. Ordinary-host gameplay was accepted in the earlier integration prototype. The new separate delivery passes actual-SDK source/syntax checks and synthetic gameplay/UI fixtures; fresh separate-addon gameplay, a second remote client and dedicated servers remain unverified.
 
 Include SDK/game versions, enabled mods, reproduction steps and cc2x.log with reports.
 [url=https://github.com/Dioramawhois/-CC2X-island-airfields]Source and compatibility details[/url]

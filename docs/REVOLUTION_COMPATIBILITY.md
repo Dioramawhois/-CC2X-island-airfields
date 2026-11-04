@@ -1,7 +1,7 @@
 # Revolution compatibility: separate addon
 
-Island Airfields **2.1.0-client-beta.1** works as a separate package alongside the
-original **Revolution 1.6-19**, using **CC2X SDK 0.8.1-client-beta.1**.
+Island Airfields **2.1.1-client-beta.1** is a separate package for the
+original **Revolution 1.6-19 or 1.6-20**, using **CC2X SDK 0.8.1-client-beta.1**.
 
 Enable both mods. Island Airfields does not include, replace or redistribute
 Revolution's files. The earlier private combined-package experiment is retired;
@@ -20,11 +20,17 @@ It modifies only its in-memory compilation buffer and appends the owned helper
 atomically. Unknown sources retain their original code and receive no helper.
 Installed and subscribed files are never written.
 
-Stock and Revolution profiles cover holomap, vehicle control and propulsion.
+Stock and both reviewed Revolution versions cover holomap, vehicle control and propulsion.
 The map edits preserve Revolution's own update/input callbacks, fog of war,
 coordinate transforms, patrols and support orders. Six individual/group waypoint
 call sites use the existing typed landing channel. Optional cached vehicle
 proxies are unwrapped only for the order operation.
+
+Aircraft landing orders are issued from the vehicle-control map. A new first
+waypoint or a drag that replaces the first waypoint can use the landing helper;
+later route points remain ordinary movement orders. Revolution's holomap
+provides carrier route editing and aircraft camera/airlift actions. Its carrier
+route reconstruction calls are preserved unchanged.
 
 The propulsion classifier follows stock carrier-parent semantics: arrivals,
 queue and taxi require this carrier's docking parent; launch and holding require
@@ -33,13 +39,15 @@ this flight-deck display. The host flight policy is unchanged.
 
 ## Verification
 
-- Eight Python profile/packaging regressions pass, including rejection of whole
+- Eighteen Python profile/packaging regressions pass, including rejection of whole
   screen caches in the separate addon.
 - Real Lua executes only owned helpers and synthetic UI fixtures: markers,
   transforms, moves/routes, group/proxy handling, remote request encoding,
   parked/queued indicators and all five carrier deck states.
 - The actual SDK transformer discovers the addon and transforms/compiles all
-  three real stock screens and three real Revolution screens. It never executes
+  three real stock screens and all three screens from each reviewed Revolution
+  version. Revolution output must match the independently applied reviewed Git
+  patches byte-for-byte before the owned helper is appended. It never executes
   third-party Lua. Unknown-profile, range, overlap, syntax and atomic hook delivery
   failures also have SDK native fixtures.
 - Actual SDK Host fixtures cover the unchanged helicopter/plane landing/launch,
@@ -55,9 +63,30 @@ delivery. Remote clients and dedicated servers remain unverified.
 ## Maintenance
 
 `compatibility/generate_screen_profiles.py` authors declarations from legitimate
-local sources and reviewed owned patches. Original source is used only locally
-for this verification, never included in the Workshop payload. Review changed
-screen hashes rather than silently patching unknown versions.
+local sources and reviewed owned patches. Pass each supported version explicitly:
+
+```text
+python compatibility/generate_screen_profiles.py --game GAME --revolution REVOLUTION_1_6_19 --revolution REVOLUTION_1_6_20
+```
+
+The authoring tool checks the complete 40-resource inventory and `mod.xml` hash
+against `compatibility/revolution_1_6/profile.json` and `profile_1_6_20.json`.
+It requires every supported review before writing the descriptor, preserves
+distinct source profiles, and refuses different edits for the same source hash.
+Original source is used only locally, never included in the Workshop payload.
+
+Revolution 1.6-20 changes only `screen_vehicle_control.lua` among those 40
+resources; the other 39 are byte-identical to 1.6-19. Its new dock-state rendering
+logic is preserved. The eight Island Airfields edits are freshly derived from
+the reviewed 1.6-20 bytes: the first insertion shifts by 99 bytes and the seven
+remaining edits shift by 81 bytes. Merely changing the 1.6-19 hash would target
+incorrect positions. All six previous stock/1.6-19 profile records are retained
+unchanged. An owned UTF-8 fixture also checks byte offsets and demonstrates why
+hash-only repinning is invalid.
+
+Review changed screen hashes rather than silently patching unknown versions.
+The 1.6-20 checks establish offline transformation and syntax compatibility;
+fresh gameplay with that version still requires a separate owner check.
 
 ## Owner check
 

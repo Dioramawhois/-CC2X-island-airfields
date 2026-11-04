@@ -92,6 +92,51 @@
           ]
         },
         {
+          "sha256": "ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f",
+          "edits": [
+            {
+              "offset": 104253,
+              "remove": 0,
+              "insert": "        -- Island Airfields: keep Revolution map transforms and input logic.\n        mm_draw_airfields(screen_w, screen_h, false)\n\n"
+            },
+            {
+              "offset": 190682,
+              "remove": 0,
+              "insert": "        mm_draw_cc2x_notice(screen_w, screen_h)\n"
+            },
+            {
+              "offset": 202428,
+              "remove": 73,
+              "insert": "                            mm_add_waypoint(child_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 213605,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 214283,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 218596,
+              "remove": 84,
+              "insert": "                                        mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 219263,
+              "remove": 88,
+              "insert": "                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 220259,
+              "remove": 95,
+              "insert": "                                    mm_add_waypoint(v, world_x + dx * count, world_y + dy * count)\n"
+            }
+          ]
+        },
+        {
           "sha256": "dc5f291aaf304c4709dc9a931812f0d1b058834ddb5677dc87467a9c2ea71266",
           "edits": [
             {
