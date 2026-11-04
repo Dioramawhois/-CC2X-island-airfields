@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased: Revolution 1.6 local compatibility candidate
+
+- Add a separate reviewed adapter for Revolution 1.6-19: preserve its screen
+  callbacks, map transforms, fog of war and ordinary/group order paths while
+  adding Island Airfields UI and typed landing requests. Keep all five host
+  module files unchanged; do not include a native gameplay binary.
+- Pin the original manifest and all 40 Revolution content resources. Build a
+  separate local combined package with 38 byte-identical resources and two
+  reviewed Git screen patches; reject changed inputs and preserve source files.
+- Add profile/Git regressions, real-Lua synthetic UI checks and owner gameplay
+  test cases. This candidate has no game/network acceptance or redistribution
+  approval; the public 2.0 player package is unchanged.
+
 ## 2.0.0-client-beta.1 (2026-11-04)
 
 - Own-island airfield markers use checked stock generation metadata before

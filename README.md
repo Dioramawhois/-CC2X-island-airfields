@@ -1,5 +1,9 @@
 # Island Airfields
 
+An isolated [Revolution 1.6 compatibility candidate](docs/REVOLUTION_COMPATIBILITY.md)
+is available in this development branch. It is a local test adapter, not part of
+the published player package; its combined gameplay acceptance remains pending.
+
 Development version **2.0.0-client-beta.1** moves the complete airfield policy into
 its own Lua/content package. Aircraft approach, runway sharing, hangars, servicing,
 launch and cancellation use public CC2X APIs. The player package contains no mod

@@ -1,0 +1,12 @@
+--- a/content/scripts/screen_holomap.lua
++++ b/content/scripts/screen_holomap.lua
+@@ -486,6 +486,9 @@
+             return
+         end
+         update_set_screen_background_is_render_islands(true)
++
++        -- Island Airfields: own infrastructure only; preserve Revolution fog of war.
++        mm_draw_airfields(screen_w, screen_h, true)
+ 
+         if vehicle_count < 300 then
+             -- draw markers
