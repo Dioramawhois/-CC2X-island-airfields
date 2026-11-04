@@ -116,7 +116,6 @@ function mm_self_test_tick()
         vehicle:set_target_vehicle(waypoint_id, tile_id)    -- tile_id carries the carrier id here
     end
 end
-
 -- [my_mod] Nearest own island with an airfield within max_dist of a world point.
 -- Returns island, anchor x, anchor y (or nil).
 function mm_find_landing_island(world_x, world_y, max_dist)
@@ -238,4 +237,3 @@ function mm_draw_airfields(screen_w, screen_h, holomap)
         end
     end
 end
-
