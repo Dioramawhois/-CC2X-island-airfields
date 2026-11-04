@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="660" viewBox="0 0 1400 660">
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10" fill="#23deea"/></marker></defs>
+<rect width="1400" height="660" fill="#081a29"/>
+<g font-family="Segoe UI, Arial, sans-serif" fill="#eef8ff">
+<text x="45" y="64" font-size="35" font-weight="700">ISLAND AIRFIELDS 2.0 &#183; INSTALLATION</text>
+<text x="45" y="102" font-size="21" fill="#8cb3ce">Windows &#183; CC2 1.5.18-r2 &#183; CC2X SDK 0.8.0 client beta 1</text>
+<g fill="#102c40" stroke="#2d546b"><rect x="45" y="148" width="400" height="397" rx="18"/><rect x="500" y="148" width="400" height="397" rx="18"/><rect x="955" y="148" width="400" height="397" rx="18"/></g>
+<g fill="#23deea" font-size="23" font-weight="700"><text x="75" y="199">1  SUBSCRIBE</text><text x="530" y="199">2  INSTALL SDK DLL</text><text x="985" y="199">3  ENABLE THE MOD</text></g>
+<g font-size="22"><text x="75" y="255">Island Airfields</text><text x="75" y="293">+ CC2X SDK</text><text x="75" y="358" fill="#a5c2d7">Wait for Steam to download</text><text x="75" y="391" fill="#a5c2d7">both Workshop items.</text>
+<text x="530" y="255">Close the game.</text><text x="530" y="295">Copy dinput8.dll from SDK</text><text x="530" y="333">to the game folder:</text>
+<text x="550" y="397" font-family="Consolas, monospace" font-size="21">carrier_command.exe</text><text x="550" y="432" fill="#23deea" font-family="Consolas, monospace" font-size="23" font-weight="700">dinput8.dll</text>
+<text x="985" y="255">Start Carrier Command 2.</text><text x="985" y="295">Mods &#8594; Island Airfields</text><text x="985" y="357">Enable it, then restart.</text><text x="985" y="432" fill="#a5c2d7">Give an airborne aircraft</text><text x="985" y="465" fill="#a5c2d7">one waypoint near an airfield.</text></g>
+<g stroke="#23deea" stroke-width="5" marker-end="url(#arrow)"><path d="M452 338 H482"/><path d="M907 338 H937"/></g>
+<text x="45" y="597" font-size="21" fill="#b1cbdd">The two files belong in the same folder. Update the copied DLL when the SDK is updated.</text>
+<text x="45" y="629" font-size="18" fill="#789bb3">A Workshop subscription downloads the SDK; the manual copy installs its bootstrap.</text>
+</g></svg>
