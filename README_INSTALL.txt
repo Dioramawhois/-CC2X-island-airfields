@@ -1,4 +1,7 @@
-Island Airfields 2.1.1 client beta 1
+Island Airfields 2.1.2 client beta 1 - local runway-entry test candidate
+
+Steam and the public release currently contain 2.1.1 client beta 1. This local
+candidate requires a fresh in-game approach check before publication.
 
 Requires CC2X SDK 0.8.1 client beta 1 and the reviewed Windows CC2 1.5.18-r2 client.
 Subscribe to Island Airfields and the CC2X SDK Workshop item 3833014670.

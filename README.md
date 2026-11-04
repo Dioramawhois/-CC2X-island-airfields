@@ -1,9 +1,13 @@
 # Island Airfields
 
-**2.1.1-client-beta.1** is a separate Lua addon for stock Carrier Command 2 and
+**2.1.2-client-beta.1** is a local runway-entry test candidate for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. It requires **CC2X SDK 0.8.1-client-beta.1**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
+
+The published release is [2.1.1-client-beta.1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.1-client-beta.1).
+This candidate changes the first assisted approach target and requires a fresh
+in-game check before publication. See [Runway approach](docs/RUNWAY_APPROACH.md).
 
 Aircraft land on owned island airfields, receive hangar service and launch on a
 new order. The host runs the flight policy through public SDK APIs. The mod has
@@ -36,6 +40,9 @@ carrier deck display checks the destination carrier, excluding island landings
 and other carriers' traffic. [Compatibility design and evidence](docs/REVOLUTION_COMPATIBILITY.md).
 
 ## Validation scope
+
+The unreleased runway-entry source candidate and its separate validation limits
+are described in [Runway approach](docs/RUNWAY_APPROACH.md).
 
 The owner accepted ordinary-host airfield behavior in the earlier integration
 prototype and reported its carrier-status defect. The fix has real-Lua synthetic
