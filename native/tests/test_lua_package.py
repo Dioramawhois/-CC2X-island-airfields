@@ -32,21 +32,24 @@ class RecipeTest(unittest.TestCase):
         (self.project / 'lua/build_lua.py').write_bytes((ROOT / 'lua/build_lua.py').read_bytes())
         (self.game / 'mod_dev_kit/source/scripts/example.lua').write_bytes(b'return 1\n')
         (self.project / 'lua/example.lua.patch').write_text('--- game/example.lua\n+++ mod/example.lua\n@@ -1 +1 @@\n-return 1\n+return 2\n')
+        (self.project / 'content/cc2x').mkdir(parents=True)
+        (self.project / 'content/cc2x/screen_extensions.json').write_text(json.dumps({
+            'schema':2,'extensions':[{'screen':'scripts/example.lua','source':'cc2x/ui/owned.lua',
+                'profiles':[{'sha256':'a'*64,'edits':[{'offset':0,'remove':0,'insert':'owned()\n'}]}]}]}))
         self.module.ROOT = self.project
 
-    def test_fresh_recipe_preserves_game_and_reports_patch_and_base_hashes(self):
+    def test_separate_addon_preserves_game_and_bundles_no_screen_source(self):
         result, evidence = self.module.resources(self.game, read)
-        self.assertEqual(result, {'content/scripts/example.lua': b'return 2\n'})
+        self.assertEqual(result, {})
         self.assertEqual((self.game / 'mod_dev_kit/source/scripts/example.lua').read_bytes(), b'return 1\n')
-        self.assertEqual(len(evidence['screen_inputs_sha256']['example.lua']['base_sha256']), 64)
+        self.assertFalse(evidence['original_screens_bundled'])
+        self.assertEqual(len(evidence['screen_descriptor_sha256']),64)
 
-    def test_identical_cache_is_already_collected_and_stale_cache_is_refused(self):
+    def test_even_identical_whole_screen_cache_is_refused(self):
         cached = self.project / 'content/scripts/example.lua'
         cached.parent.mkdir(parents=True)
         cached.write_bytes(b'return 2\n')
-        self.assertEqual(self.module.resources(self.game, read)[0], {})
-        cached.write_bytes(b'return 3\n')
-        with self.assertRaisesRegex(ValueError, 'Cached screen differs'):
+        with self.assertRaisesRegex(ValueError, 'Whole screen caches'):
             self.module.resources(self.game, read)
 
     def test_missing_game_is_refused(self):

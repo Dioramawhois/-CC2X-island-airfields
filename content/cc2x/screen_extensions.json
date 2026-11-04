@@ -1,0 +1,188 @@
+{
+  "schema": 2,
+  "extensions": [
+    {
+      "screen": "scripts/screen_holomap.lua",
+      "source": "cc2x/ui/ui_common.lua",
+      "profiles": [
+        {
+          "sha256": "22b31c3892623275e3ea4acfc1b390eac764a7de0a804a6eba0accc9a9173042",
+          "edits": [
+            {
+              "offset": 16448,
+              "remove": 0,
+              "insert": "\n        -- Island Airfields: own infrastructure only; preserve Revolution fog of war.\n        mm_draw_airfields(screen_w, screen_h, true)\n"
+            }
+          ]
+        },
+        {
+          "sha256": "ed7f640a1fc877e4118a6b7df86760556762b587ff80206736b0540cc97f02e8",
+          "edits": [
+            {
+              "offset": 2934,
+              "remove": 44,
+              "insert": "function update(screen_w, screen_h, ticks)\n"
+            },
+            {
+              "offset": 12448,
+              "remove": 0,
+              "insert": "        -- [my_mod] Own airfield infrastructure is known from map generation metadata.\n        -- Keep the normal team colour regardless of streaming distance.\n        do\n            local mm_my_team = update_get_screen_team_id()\n            local mm_alpha = 200\n            local mm_n = update_get_tile_count()\n\n            for i = 0, mm_n - 1 do\n                local island = update_get_tile_by_index(i)\n                if island:get() and island:get_team_control() == mm_my_team and mm_is_marked_airfield(island) then\n                    local base = update_get_team_color(mm_my_team)\n                    local col = color8(base:r(), base:g(), base:b(), mm_alpha)\n                    local wx, wy = mm_island_pos(island)\n                    local sx, sy = get_screen_from_world(wx, wy, g_map_x + g_map_x_offset, g_map_z + g_map_z_offset, g_map_size + g_map_size_offset, screen_w, screen_h, 2.6 / 1.6)\n                    update_ui_image(sx - 8, sy - 8, atlas_icons.map_icon_factory_chassis_air, col, 0)\n                end\n            end\n        end\n\n"
+            },
+            {
+              "offset": 12539,
+              "remove": 187,
+              "insert": "                g_drag_pos_world_x, g_drag_pos_world_y = get_world_from_screen(g_cursor_pos_next_x, g_cursor_pos_next_y, g_map_x + g_map_x_offset, g_map_z + g_map_z_offset, g_map_size +\n"
+            },
+            {
+              "offset": 28700,
+              "remove": 3,
+              "insert": "end\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "screen": "scripts/screen_vehicle_control.lua",
+      "source": "cc2x/ui/ui_common.lua",
+      "profiles": [
+        {
+          "sha256": "5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854",
+          "edits": [
+            {
+              "offset": 104154,
+              "remove": 0,
+              "insert": "        -- Island Airfields: keep Revolution map transforms and input logic.\n        mm_draw_airfields(screen_w, screen_h, false)\n\n"
+            },
+            {
+              "offset": 190601,
+              "remove": 0,
+              "insert": "        mm_draw_cc2x_notice(screen_w, screen_h)\n"
+            },
+            {
+              "offset": 202347,
+              "remove": 73,
+              "insert": "                            mm_add_waypoint(child_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 213524,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 214202,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 218515,
+              "remove": 84,
+              "insert": "                                        mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 219182,
+              "remove": 88,
+              "insert": "                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 220178,
+              "remove": 95,
+              "insert": "                                    mm_add_waypoint(v, world_x + dx * count, world_y + dy * count)\n"
+            }
+          ]
+        },
+        {
+          "sha256": "dc5f291aaf304c4709dc9a931812f0d1b058834ddb5677dc87467a9c2ea71266",
+          "edits": [
+            {
+              "offset": 42392,
+              "remove": 44,
+              "insert": "function update(screen_w, screen_h, ticks)\n"
+            },
+            {
+              "offset": 42641,
+              "remove": 0,
+              "insert": "\n    mm_self_test_tick()\n"
+            },
+            {
+              "offset": 61495,
+              "remove": 0,
+              "insert": "        -- [my_mod] Own airfield infrastructure is known from map generation metadata.\n        -- Keep the normal team colour regardless of streaming distance.\n        do\n            local mm_my_team = update_get_screen_team_id()\n            local mm_alpha = 200\n            local mm_n = update_get_tile_count()\n\n            for i = 0, mm_n - 1 do\n                local island = update_get_tile_by_index(i)\n                if island:get() and island:get_team_control() == mm_my_team and mm_is_marked_airfield(island) then\n                    local base = update_get_team_color(mm_my_team)\n                    local col = color8(base:r(), base:g(), base:b(), mm_alpha)\n                    local wx, wy = mm_island_pos(island)\n                    local sx, sy = get_screen_from_world(wx, wy, g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)\n                    update_ui_image(sx - 8, sy - 8, atlas_icons.map_icon_factory_chassis_air, col, 0)\n                end\n            end\n        end\n\n"
+            },
+            {
+              "offset": 74727,
+              "remove": 0,
+              "insert": "                                end\n\n                                -- [my_mod] island airfield status: dashed line to the airfield while queued for landing,\n                                -- ring around aircraft parked in an island hangar (drag a waypoint from it to launch)\n                                if is_render_vehicle_icon and mm_is_queued_at_airfield(vehicle) then\n                                    local mm_island = nil\n                                    local mm_island_id = g_mm_landing_orders[vehicle:get_id()]\n\n                                    if mm_island_id ~= nil then\n                                        mm_island = update_get_tile_by_id(mm_island_id)\n                                    end\n\n                                    if mm_island == nil or mm_island:get() == false then\n                                        mm_island = mm_find_landing_island(vehicle_pos_xz:x(), vehicle_pos_xz:y(), 1000000.0)\n                                    end\n\n                                    if mm_island ~= nil and mm_island:get() then\n                                        local mm_x, mm_y = mm_island_pos(mm_island)\n                                        local mm_sx, mm_sy = get_screen_from_world(mm_x, mm_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)\n                                        render_dashed_line(screen_pos_x, screen_pos_y, mm_sx, mm_sy, waypoint_color)\n                                        update_ui_image(mm_sx - 4, mm_sy - 4, atlas_icons.map_icon_waypoint, waypoint_color, 0)\n                                    end\n                                elseif is_render_vehicle_icon and mm_is_parked_at_airfield(vehicle) then\n                                    local mm_base = update_get_team_color(vehicle_team)\n                                    update_ui_circle(screen_pos_x, screen_pos_y, 7, 12, color8(mm_base:r(), mm_base:g(), mm_base:b(), 200))\n"
+            },
+            {
+              "offset": 119159,
+              "remove": 0,
+              "insert": "    mm_draw_cc2x_notice(screen_w, screen_h)\n\n"
+            },
+            {
+              "offset": 126653,
+              "remove": 73,
+              "insert": "\n                            -- [my_mod] aircraft sent near an own airfield get a landing order\n                            mm_add_waypoint(child_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 136279,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 136975,
+              "remove": 104,
+              "insert": "                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 141287,
+              "remove": 84,
+              "insert": "                                        mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 141952,
+              "remove": 88,
+              "insert": "                                            mm_add_waypoint(drag_vehicle, world_x, world_y)\n"
+            },
+            {
+              "offset": 157908,
+              "remove": 3,
+              "insert": "end\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "screen": "scripts/screen_propulsion.lua",
+      "source": "cc2x/ui/carrier_traffic.lua",
+      "profiles": [
+        {
+          "sha256": "7382748796166450a599b711b33da8d6fea231de2e28fb413befc2b159509ba0",
+          "edits": [
+            {
+              "offset": 8419,
+              "remove": 121,
+              "insert": "                -- Island Airfields: this carrier only, using stock parent semantics.\n                local deck_state = mm_carrier_flight_deck_state(this_vehicle, vehicle)\n"
+            },
+            {
+              "offset": 8641,
+              "remove": 694,
+              "insert": ""
+            }
+          ]
+        },
+        {
+          "sha256": "d0cf3f7fa32fa990a0cd3bd1ed2bdd33ebc9eedff4af62869541999c4e997fb3",
+          "edits": [
+            {
+              "offset": 0,
+              "remove": 0,
+              "insert": "-- Island Airfields: keep stock carrier-specific deck indications.\n"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.1.0-client-beta.1 (2026-11-04)
+
+- Deliver Island Airfields as a separate addon alongside the original Revolution
+  1.6-19. Remove all complete screen resources and the private combined-package
+  builder. The player payload contains no Revolution files and has zero resource
+  path overlaps with it.
+- Require unified SDK 0.8.1 with hash-pinned, syntax-checked in-memory screen edits.
+  Ship only reviewed source hashes, owned insertions and owned helper Lua. Stock
+  and Revolution profiles preserve map controls and typed host landing requests.
+- Include the carrier-specific flight-deck indication fix. Keep the independent
+  host gameplay unchanged. Validate actual SDK source transformation/syntax for
+  three stock and three Revolution screens without executing third-party Lua.
+- Earlier prototype host acceptance remains historical; fresh separate-addon
+  gameplay, remote client and dedicated-server acceptance remain unverified.
+
+## Unreleased: Revolution 1.6 local compatibility candidate
+
+- Test candidate 2: restrict flight-deck landing/queue/taxi indications to this
+  carrier's docking parent, and launch/holding indications to its attached
+  aircraft. Island traffic and other carriers no longer occupy the display.
+  Cover all five states and both parent types in the real-Lua UI fixture.
+
+- Add a separate reviewed adapter for Revolution 1.6-19: preserve its screen
+  callbacks, map transforms, fog of war and ordinary/group order paths while
+  adding Island Airfields UI and typed landing requests. Keep all five host
+  module files unchanged; do not include a native gameplay binary.
+- Pin the original manifest and all 40 Revolution content resources. Build a
+  separate local combined package with 37 byte-identical resources and three
+  reviewed Git screen patches; reject changed inputs and preserve source files.
+- Add profile/Git regressions, real-Lua synthetic UI checks and owner gameplay
+  test cases. This candidate has no game/network acceptance or redistribution
+  approval; the public 2.0 player package is unchanged.
+
 ## 2.0.0-client-beta.1 (2026-11-04)
 
 - Own-island airfield markers use checked stock generation metadata before

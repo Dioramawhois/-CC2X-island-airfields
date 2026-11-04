@@ -1,0 +1,73 @@
+--- a/content/scripts/screen_vehicle_control.lua
++++ b/content/scripts/screen_vehicle_control.lua
+@@ -2318,6 +2318,9 @@
+             end
+         end
+ 
++        -- Island Airfields: keep Revolution map transforms and input logic.
++        mm_draw_airfields(screen_w, screen_h, false)
++
+         -- render grid
+ 
+         if g_map_render_mode == 1 then
+@@ -3843,6 +3846,7 @@
+ 
+     end
+     if g_ui ~= nil then
++        mm_draw_cc2x_notice(screen_w, screen_h)
+         g_ui:end_ui()
+     end
+ 
+@@ -4094,7 +4098,7 @@
+                         if child_vehicle:get() and get_is_vehicle_waypoint_available(child_vehicle) then
+                             child_vehicle:clear_waypoints()
+                             child_vehicle:clear_attack_target()
+-                            child_vehicle:add_waypoint(world_x, world_y)
++                            mm_add_waypoint(child_vehicle, world_x, world_y)
+                         end
+ 
+                         g_selected_child_vehicle_id = 0
+@@ -4266,14 +4270,14 @@
+                                                             local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, g_screen_w, g_screen_h)
+ 
+                                                             drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
+-                                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                                         elseif g_drag.vehicle_id > 0 then
+                                                             -- add waypoint to vehicle
+ 
+                                                             local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, g_screen_w, g_screen_h)
+                                                             drag_vehicle:clear_waypoints()
+                                                             drag_vehicle:clear_attack_target()
+-                                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                                         end
+                                                     else
+                                                         -- add a support waypoint to friendly vehicle
+@@ -4330,7 +4334,7 @@
+                                         local world_x, world_y = get_world_from_screen(g_cursor_pos_x, g_cursor_pos_y, g_camera_pos_x, g_camera_pos_y, g_camera_size, g_screen_w, g_screen_h)
+ 
+                                         drag_vehicle:clear_waypoints_from(g_drag.waypoint_id)
+-                                        drag_vehicle:add_waypoint(world_x, world_y)
++                                        mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                     elseif g_drag.vehicle_id > 0 then
+                                         -- add waypoint to vehicle
+ 
+@@ -4339,7 +4343,7 @@
+ 
+                                             drag_vehicle:clear_waypoints()
+                                             drag_vehicle:clear_attack_target()
+-                                            drag_vehicle:add_waypoint(world_x, world_y)
++                                            mm_add_waypoint(drag_vehicle, world_x, world_y)
+                                         end
+                                     end
+                                 end
+@@ -4357,7 +4361,7 @@
+                                         v:clear_waypoints()
+                                         v:clear_attack_target()
+                                     end
+-                                    v:add_waypoint(world_x + dx * count, world_y + dy * count)
++                                    mm_add_waypoint(v, world_x + dx * count, world_y + dy * count)
+                                     count = count +1
+                                 end
+                             end

@@ -2,3 +2,5 @@
 *.png -text
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+# Unified patches contain required single-space blank context lines.
+compatibility/revolution_1_6/*.patch -whitespace
