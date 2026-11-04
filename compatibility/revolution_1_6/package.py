@@ -92,11 +92,17 @@ def main():
     original = dict(resources)
     helper = read(HERE, 'ui_common.lua')
     patch_hashes = {}
-    for screen in ('screen_holomap.lua', 'screen_vehicle_control.lua'):
+    screen_helpers = {'screen_holomap.lua': 'ui_common.lua',
+                      'screen_vehicle_control.lua': 'ui_common.lua',
+                      'screen_propulsion.lua': 'carrier_traffic.lua'}
+    helper_hashes = {}
+    for screen, helper_name in screen_helpers.items():
         name = 'content/scripts/' + screen
         delta = read(HERE, screen+'.patch')
-        resources[name] = apply_patch(name, original[name], delta) + b'\n' + helper
+        screen_helper = read(HERE, helper_name)
+        resources[name] = apply_patch(name, original[name], delta) + b'\n' + screen_helper
         patch_hashes[screen] = sha(delta)
+        helper_hashes[helper_name] = sha(screen_helper)
     for name, data in inventory(ROOT, read).items():
         if name.startswith('content/scripts/'):
             raise ValueError('Unexpected generated vanilla screen cache in source checkout')
@@ -109,18 +115,19 @@ def main():
     metadata = json.loads(read(ROOT, 'package.json'))
     metadata.update(id='iaf_rev16_local_test',
         name='Revolution 1.6-19 + Island Airfields (compatibility test)',
-        author='Revolution authors + dioramawork', version='2.0.0-rev16-test.1',
+        author='Revolution authors + dioramawork', version='2.0.0-rev16-test.2',
         description='Local compatibility candidate. Includes Revolution 1.6-19 and Island Airfields Lua gameplay. Requires CC2X SDK 0.8. Gameplay acceptance pending. Enable this combined copy only.')
     provenance = {'validation': 'local-combined-candidate-not-gameplay-acceptance',
         'source_commit': subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip(),
         'source_dirty': bool(subprocess.check_output(['git','-C',str(ROOT),'status','--porcelain'],text=True).strip()),
         'mod_order': ['3460002110','3826940003'], 'revolution_manifest_sha256': sha(manifest),
         'revolution_source_sha256': profile['resources_sha256'], 'patch_sha256': patch_hashes,
-        'ui_helper_sha256': sha(helper), 'recipe_sha256': sha(Path(__file__).read_bytes()),
+        'ui_helper_sha256': sha(helper), 'helper_sha256': helper_hashes,
+        'recipe_sha256': sha(Path(__file__).read_bytes()),
         'game_exe_sha256': generation['exe_sha256'],
         'airfields_source_sha256': {name:sha(data) for name,data in resources.items()
                                   if name.startswith('content/bridge')},
-        'unmodified_revolution_resources': len(original)-2,
+        'unmodified_revolution_resources': len(original)-len(screen_helpers),
         'game_runtime_tested': False, 'remote_multiplayer_tested': False,
         'redistribution': 'Local test output includes third-party Revolution resources; not a public release.'}
     # Recheck subscribed inputs after transformation, before any output is published.

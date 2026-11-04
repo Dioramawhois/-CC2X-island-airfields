@@ -25,7 +25,7 @@ if __name__ == '__main__':
         raise ValueError('Use the verified SDK compiler')
     inputs = [ROOT/'compatibility/revolution_1_6/ui_common.lua',
               ROOT/'native/tests/revolution_ui.lua', ROOT/'native/tests/revolution_ui_runner.c',
-              Path(__file__).resolve()]
+              Path(__file__).resolve(), ROOT/'compatibility/revolution_1_6/carrier_traffic.lua']
     hashes = {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}
     objects = sorted((sdk/'build/unified/objects').glob('third_party_lua_*.obj'))
     if not objects:
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         subprocess.run([str(zig),'cc','-target','x86-windows-gnu','-O1','-UNDEBUG',
                         '-I',str(sdk/'third_party/lua'),str(inputs[2]),
                         *map(str,objects),'-o',str(output)],check=True)
-        subprocess.run([str(output),str(inputs[0]),str(inputs[1])],check=True,timeout=15)
+        subprocess.run([str(output),str(inputs[0]),str(inputs[4]),str(inputs[1])],check=True,timeout=15)
         executable = sha(output)
     if hashes != {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}:
         raise ValueError('UI fixture inputs changed during validation')

@@ -2,12 +2,17 @@
 
 ## Unreleased: Revolution 1.6 local compatibility candidate
 
+- Test candidate 2: restrict flight-deck landing/queue/taxi indications to this
+  carrier's docking parent, and launch/holding indications to its attached
+  aircraft. Island traffic and other carriers no longer occupy the display.
+  Cover all five states and both parent types in the real-Lua UI fixture.
+
 - Add a separate reviewed adapter for Revolution 1.6-19: preserve its screen
   callbacks, map transforms, fog of war and ordinary/group order paths while
   adding Island Airfields UI and typed landing requests. Keep all five host
   module files unchanged; do not include a native gameplay binary.
 - Pin the original manifest and all 40 Revolution content resources. Build a
-  separate local combined package with 38 byte-identical resources and two
+  separate local combined package with 37 byte-identical resources and three
   reviewed Git screen patches; reject changed inputs and preserve source files.
 - Add profile/Git regressions, real-Lua synthetic UI checks and owner gameplay
   test cases. This candidate has no game/network acceptance or redistribution

@@ -93,3 +93,33 @@ mm_draw_airfields(512,512,false)
 assert(#images==1 and images[1][1]==20092)
 assert(#circles==1 and #lines==1, 'parked and queued statuses must survive the adapter')
 print('PASS: own markers, Revolution transforms, normal/append/group/proxy orders, module absence, remote encoding and airfield statuses (synthetic UI)')
+
+-- Island or another carrier's traffic must not occupy this carrier's display.
+g_flight_deck_states = {none=0, taxi=1, queued=2, landing=3, launch=4, holding=5}
+e_vehicle_dock_state.undocking = 3
+e_vehicle_dock_state.docking_taxi = 4
+e_vehicle_dock_state.undock_holding = 6
+local carrier = {get_id=function() return 100 end}
+local target = {state=0, dock_parent=0, attached_parent=0}
+function target:get_dock_state() return self.state end
+function target:get_dock_parent_id() return self.dock_parent end
+function target:get_attached_parent_id() return self.attached_parent end
+for _,case in ipairs({{'undocking','launch',true}, {'undock_holding','holding',true},
+                     {'docking','landing',false}, {'docking_taxi','taxi',false},
+                     {'dock_queue','queued',false}}) do
+    target.state = e_vehicle_dock_state[case[1]]
+    target.dock_parent, target.attached_parent = 0, 0
+    assert(mm_carrier_flight_deck_state(carrier,target)==0, 'island traffic leaked: '..case[1])
+    target.dock_parent, target.attached_parent = 200, 200
+    assert(mm_carrier_flight_deck_state(carrier,target)==0, 'another carrier leaked: '..case[1])
+    target.dock_parent, target.attached_parent = 100, 100
+    assert(mm_carrier_flight_deck_state(carrier,target)==g_flight_deck_states[case[2]])
+    -- An arrival target cannot identify a launch parent, or vice versa.
+    target.dock_parent = case[3] and 100 or 0
+    target.attached_parent = case[3] and 0 or 100
+    assert(mm_carrier_flight_deck_state(carrier,target)==0, 'wrong parent kind: '..case[1])
+end
+target.state, target.dock_parent, target.attached_parent = e_vehicle_dock_state.undocked,100,100
+assert(mm_carrier_flight_deck_state(carrier,target)==0)
+assert(mm_carrier_flight_deck_state({get_id=function()return 0 end},target)==0)
+print('PASS: carrier-specific landing/queue/taxi/launch/holding; island and other-carrier exclusion (synthetic UI)')

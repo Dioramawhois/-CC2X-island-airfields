@@ -1,8 +1,10 @@
 # Revolution 1.6 compatibility candidate
 
-Status: local prototype, 2026-11-04. Gameplay, a second remote client and
-dedicated servers have not been tested for this combined package. The published
-Island Airfields 2.0 release and the installed game are unchanged.
+Status: local prototype, 2026-11-04. The owner reported the first candidate
+working except for a false carrier Landing indicator during island arrivals.
+Candidate 2 fixes that indication; its manual recheck, a second remote client
+and dedicated servers remain unverified. The published Island Airfields 2.0
+release and the installed game are unchanged.
 
 ## Findings
 
@@ -24,8 +26,8 @@ an independent Lua VM and needs no Revolution-specific engine hook.
 ## Prototype design
 
 Build a separate **local combined package** from the user's subscribed files.
-Preserve 38 Revolution content resources byte-for-byte. Apply two small reviewed
-Git patches to the other two screens, then append owned Airfields UI helpers.
+Preserve 37 Revolution content resources byte-for-byte. Apply three small reviewed
+Git patches to the other three screens, then append owned Airfields UI helpers.
 The patches insert rendering inside Revolution's normal map branches and route
 six ordinary/group waypoint call sites through the existing typed landing-order
 helper. Revolution's update/input functions, support orders, fog of war,
@@ -36,6 +38,13 @@ plus own parked/queued aircraft on the control screen. Preserve ordinary moves
 for ground units, distant destinations and appended routes. Unwrap Revolution's
 optional cached vehicle proxy before order writes. The existing host Lua policy
 and the stock replicated waypoint channel remain unchanged.
+
+The propulsion-screen patch restricts flight-deck indications to the displayed
+carrier. Revolution checked only team and dock state, which also includes
+island arrivals. The owned classifier follows the stock screen's distinction:
+arrival/queue/taxi require the matching docking parent, whereas launch/holding
+require the matching attached parent. Island traffic and another carrier's
+aircraft produce no deck state on this carrier. Flight policy is unchanged.
 
 `compatibility/revolution_1_6/profile.json` pins the complete subscribed content
 inventory and original manifest. New, missing or changed resources require a
@@ -56,10 +65,12 @@ replace the required 0.8 runtime with 0.7.1 merely to obtain screen extensions.
 - Owned UI helpers execute in real Lua against synthetic screen objects:
   ownership filtering, both transforms, landing encoding, normal and appended
   moves, group/proxy vehicles, disabled planes, missing module, remote request
-  encoding and parked/queued indicators. No Revolution Lua is executed.
+  encoding and parked/queued indicators. Candidate 2 additionally covers all
+  five flight-deck states, island/other-carrier exclusion and parent-kind
+  distinctions. No Revolution Lua is executed.
 - All Lua resources in the assembled package pass the real Lua 5.3 syntax checker.
 - Reversing each reviewed patch restores the entire original Revolution screen
-  after line-ending normalization; the remaining 38 resources are byte-identical.
+  after line-ending normalization; the remaining 37 resources are byte-identical.
 - All five Airfields bridge files are unchanged. No native binary is included.
 
 The real-Lua fixture is not game, PhysX or network acceptance. Fresh hashes and
@@ -101,6 +112,10 @@ Revolution/Airfields copies, and restart.
    ground units retain ordinary moves. Existing routes/support orders remain usable.
 6. Verify Revolution's carrier launch controls still work, then save/reload and
    repeat an island launch. Check parked/queued map indicators.
+7. With no actual carrier traffic, land and launch an aircraft at an island:
+   the carrier flight-deck indicator must stay idle. Then send an aircraft to
+   the carrier itself: its queue, Landing and launch indications must still work.
+   If another carrier is available, its traffic must not occupy this display.
 
 One-machine host acceptance cannot certify a second remote client. Report the
 first failing step with `cc2x.log`; do not describe the adapter as released or

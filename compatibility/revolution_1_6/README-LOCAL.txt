@@ -19,7 +19,8 @@ The included LICENSE applies to that owned code, not to third-party resources.
 This output is built from the user's local subscribed Revolution files for
 private compatibility testing. It is not approved for public redistribution.
 
-The candidate preserves all 40 Revolution content resources. Two screen files
-receive reviewed additions; the remaining 38 are byte-identical. Airfield
+The candidate preserves all 40 Revolution content resources. Three screen files
+receive reviewed changes; the remaining 37 are byte-identical. The carrier
+flight-deck indicator excludes island landings and other carriers' traffic. Airfield
 gameplay remains in the independent Lua module. No game or subscribed file is
 modified. See BUILD_CHECK.json for exact source/output hashes and validation scope.

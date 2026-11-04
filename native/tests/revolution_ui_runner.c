@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Execute only our two explicitly named Lua files; never a Revolution/game script.
+// Execute only our explicitly named Lua files; never a Revolution/game script.
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
 #include <stdio.h>
 int main(int argc, char **argv) {
-    if (argc != 3) return 2;
+    if (argc != 4) return 2;
     lua_State *state = luaL_newstate();
     if (!state) return 3;
     luaL_openlibs(state);
