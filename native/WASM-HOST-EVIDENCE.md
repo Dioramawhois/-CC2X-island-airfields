@@ -1,4 +1,13 @@
-# Native Wasm host checkpoint — 2026-10-31
+# Historical native/Wasm prototype
+
+This evidence belongs to the earlier native/Wasm experiment retained from main.
+Island Airfields 2.0 uses the separate Lua module. The current package builder
+includes none of this prototype's native/Wasm files. Its integration-era tests
+are historical evidence, not validation of the current Lua player package.
+
+---
+
+# Native Wasm host checkpoint вЂ” 2026-10-31
 
 Status: experimental integration implemented; NOT approved for distribution.
 
@@ -15,7 +24,7 @@ Status: experimental integration implemented; NOT approved for distribution.
 ## Executed evidence
 
 1. Native arm64 cc O2 executable with actual vendored interpreter: own minimal infinite branch loop returns `[trap] out of gas`, under outer 15s hard-kill watchdog.
-2. Same executable loads final production module `be3eb6adfd5d9ffe6839ab19aef9cb85143a182f6f1373f58bec137d7e6647db`; slots, line-up, stale-handle permanent failure PASS. Actual host terminal regression PASS: SET_STATE count2/FINAL → unsafe LANDING returns staged ABORT3 → GET still count2 → DROP → replacement generation fresh count0 → stale handle permanently closes host. No SET_STATE3, no state leak.
+2. Same executable loads final production module `be3eb6adfd5d9ffe6839ab19aef9cb85143a182f6f1373f58bec137d7e6647db`; slots, line-up, stale-handle permanent failure PASS. Actual host terminal regression PASS: SET_STATE count2/FINAL в†’ unsafe LANDING returns staged ABORT3 в†’ GET still count2 в†’ DROP в†’ replacement generation fresh count0 в†’ stale handle permanently closes host. No SET_STATE3, no state leak.
 3. 1000 sequential actual module FLY ticks compared with test-only native production reference; state and command error <1e-10 PASS. Native reference is not linked to DLL.
 4. Actual host+interpreter Zig x86_64-macos shared-library compile PASS (Mach-O x86_64). Native execution is arm64. Existing plugin remains Windows-specific, not a complete Mac game adapter.
 5. Full all-vendor ASan+UBSan executable FAILS during production module initialization: null stack dereference in upstream `m3_env.c:415`, EvaluateExpression / InitGlobals / m3_LoadModule. This is unresolved; normal O2 pass does not override it. No vendor patch, sanitizer suppression, or VM switch applied.

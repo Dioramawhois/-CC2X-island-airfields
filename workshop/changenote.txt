@@ -1,0 +1,1 @@
+2.0.0 client beta 1: host-authoritative Lua airfield gameplay, guarded incoming landing requests, immediate cancellation, bounded queues, session safety, and correct own-airfield markers before approach. Requires CC2X SDK 0.8.0 client beta 1. Ordinary-host manual tests passed; second-client replication and dedicated server verification remain pending. New cover artwork.

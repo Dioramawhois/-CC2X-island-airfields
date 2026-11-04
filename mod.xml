@@ -1,12 +1,2 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<data name="Island Airfields" author="dioramawork" description="
-Land your planes and helicopters on the airfields of your captured islands. They park in the hangars, get repaired, refuelled and rearmed, and take off again when you give them a new order.
-
-How to land: give a flying aircraft one waypoint on your island with an airfield.
-How to take off: give a parked aircraft a new waypoint.
-
-Needs CC2X 0.4 or newer (one file, once): download dinput8.dll from https://github.com/Dioramawhois/cc2x/releases/latest/download/dinput8.dll and put it into the game folder (Steam: right-click Carrier Command 2 > Manage > Browse local files). Without it the map shows a yellow line saying so.
-
-Version 1.0.1. Windows, game version 1.5.18, single player.
-">
-</data>
+<?xml version='1.0' encoding='utf-8'?>
+<data name="Island Airfields" author="dioramawork" description="Planes and helicopters land on captured island airfields, receive hangar service and launch on a new order. Requires CC2X SDK 0.8.0-client-beta.1. Ordinary-host testing passed; remote client and dedicated verification remain pending." version="2.0.0-client-beta.1"><cc2mce schema="1" type="mod" id="3826940003" sdk="cc2x" api="8" lua_api="2"><requires id="cc2x.runtime" /></cc2mce></data>

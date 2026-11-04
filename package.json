@@ -1,0 +1,14 @@
+{
+  "id": "3826940003",
+  "name": "Island Airfields",
+  "author": "dioramawork",
+  "version": "2.0.0-client-beta.1",
+  "api": 8,
+  "lua_api": 2,
+  "description": "Planes and helicopters land on captured island airfields, receive hangar service and launch on a new order. Requires CC2X SDK 0.8.0-client-beta.1. Ordinary-host testing passed; remote client and dedicated verification remain pending.",
+  "resources": {},
+  "runtime_capabilities": [
+    "lua-mod-api-v2",
+    "waypoint-origin-v1"
+  ]
+}
