@@ -1,6 +1,9 @@
 # Landing intent across save/reload
 
-Status: 2.2 development candidate; native save/reload acceptance pending.
+Status: owner-confirmed on 2026-11-06 for beta 4, commit `99031db`, with the
+matching runtime `d83d509d...`. The owner confirmed loading a save with three
+landing orders and changing aircraft equipment. New graphical UI revisions
+require their own visual acceptance; broader multiplayer acceptance is absent.
 
 Earlier candidates erased `docking_queue_data.tile_node_id/hangar_index` when
 taking over an approach and cleared the explicit waypoint when native docking

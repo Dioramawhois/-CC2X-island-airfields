@@ -1,17 +1,22 @@
 # Changelog
 
-## 2.2.0-client-beta.4 (unreleased candidate)
+## 2.2.0-client-beta.5 (unreleased candidate)
 
+- Open the selected aircraft loadout directly from its bay. Reuse the carrier
+  chassis/hardpoint widget through an owned input adapter and choose equipment
+  by pictures; retain a separate bottom launch button.
+- Remove the landing menu and the intermediate loadout-action step. Landing
+  remains an explicit aircraft-to-airfield gesture on the control map.
+- Bind the editor and launch destination to the exact aircraft identity.
 - Preserve native landing targets through save/reload; restore missing queue
   entries and legacy active arrivals from their saved hangar reservations.
 - Retain explicit deferred orders until native docking accepts them; restore
   them on a new session and preserve explicit cancellation.
 - Reconstruct map/holomap arrival links, QUEUE/HOLD/LAND/TAXI statuses and counts
   from host state after reload. Add three-arrival and missing-queue regressions.
-- Replace the flat menu with a numbered two-by-two hangar overview, selected
-  aircraft status and separate loadout, launch and landing actions.
-- Fit hardpoint/weapon pages to small monitors, wrap long names, mark fitted
-  weapons, omit carrier-hidden choices and preserve hierarchical Back navigation.
+- Show four numbered aircraft cards with native chassis symbols. Fit graphical
+  equipment choices to small monitors, wrap names, mark fitted weapons, omit
+  carrier-hidden choices and preserve hierarchical Back navigation.
 - Separate airfield icons from island hubs, using real facility positions.
 - Match hub marker size, black edge, team colour and hover highlighting.
 - Discover distant host-side positions using the optional SDK CPU tile preview;

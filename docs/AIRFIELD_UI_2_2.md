@@ -1,6 +1,8 @@
 # Airfield controls: 2.2.0 candidate
 
-Status: offline-validated development candidate; UI and gameplay acceptance pending.
+Status: unreleased UX revision; fresh graphical UI acceptance pending. The owner
+confirmed beta 4 save/reload with three arrivals and free equipment changes on
+2026-11-06. This revision preserves that flight policy and shared SDK binary.
 This document supersedes the 2.1.x automatic first-waypoint landing UI.
 
 ## Player flow
@@ -12,34 +14,37 @@ The island hub retains its original icon and production actions. The airfield
 hit area has a fixed seven-pixel radius; ordinary ground points remain movement
 orders at every map scale.
 
-Click the airfield icon to open a two-by-two overview of exactly four numbered
-hangar bays. Each card identifies its aircraft and highlights the selected bay.
-On taller displays, cards also show vehicle IDs and parked/busy state; the
-selected aircraft has hull, fuel and ammunition percentages below the cards.
-On 128x128 monitors the overview uses compact cards with the stock aircraft
-abbreviations, the same four bays and separate actions. Narrow loadout headers
-retain the bay number and aircraft identity. Unloaded fields show unavailable
-live data explicitly.
+Click the airfield icon for exactly four numbered aircraft cards. Click a parked
+aircraft once to open its loadout directly. Empty, busy and unavailable bays are
+labelled and cannot open another aircraft. Narrow cards use the stock chassis
+symbol and abbreviation; larger cards use the chassis image. Arrival counts
+remain visible separately from parked aircraft.
 
-Choose **Loadout (free)** to edit compatible hardpoints, or **Launch** and then
-click a destination on the map. **Land aircraft...** has its own action below
-these controls. Empty bays cannot launch or create aircraft. The white title
-bar, chassis/attachment symbols and status hierarchy follow carrier conventions;
-this is an owned airfield menu, not the carrier's inventory/chassis screen.
+The aircraft editor calls the existing carrier
+`imgui_vehicle_chassis_loadout` widget through an owned input adapter. It uses
+the game's chassis image, hardpoint positions, installed equipment symbols and
+supply bars. No carrier screen or copied widget implementation is shipped.
+The adapter binds each physical hit box to its actual attachment index; layouts
+come from `get_ui_vehicle_chassis_attachments`, not invented point positions.
+Missing/unsupported widget data is shown explicitly rather than guessed.
 
-Loadout pages keep the selected bay and aircraft visible, label every hardpoint
-and current attachment, and mark the fitted weapon. Carrier-hidden attachment
-options are excluded. Long option names wrap over two lines within their rows.
-Page capacity adapts to monitor height; numbered pages have separate previous
-and next buttons. **Back** returns from weapon choices to hardpoints, then to
-the hangar. **X** closes the menu. Mouse and directional/action/back controls
-share the same actions. Pending changes still block another change or launch.
+Click a point on the aircraft to choose compatible equipment by its picture.
+The focused/hovered option has a readable name; the fitted option is marked.
+Hidden carrier options remain excluded. The picture strip is paged, with long
+names wrapping over two lines. Taller displays retain the aircraft diagram
+above the equipment pictures; the 128-pixel display gives the picker its own
+view. **Back** returns to the aircraft diagram, then to the airfield.
 
-To land, choose **Land aircraft** and an airborne aircraft. On the vehicle-control
-map, dragging an aircraft onto the airfield icon also issues an explicit landing
-order. Ground clicks, first route points, later points and group orders do not
-request landing. The 2.1.2 flight circuit remains unchanged after acceptance of
-the explicit typed order.
+The aircraft editor has a separate **Launch** button at the bottom. It returns
+to the map to choose the destination. The editor and launch operation retain
+the exact aircraft identity, preventing a different occupant from inheriting an
+open editor or launch destination. Pending refits block another change or launch.
+
+There is no landing button, landing list or extra loadout-action step in the
+airfield menu. Issue landing on the vehicle-control map by dragging the aircraft
+onto the explicit airfield icon. Ground clicks, first route points, later points
+and group orders remain ordinary movement. The accepted flight circuit, queue
+recovery and serialized landing intent remain unchanged.
 
 Weapon changes are free in this minor release, by the owner's decision. The new
 attachment is created with full ammunition; no warehouse, island, carrier or barge

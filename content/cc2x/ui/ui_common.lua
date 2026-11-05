@@ -128,11 +128,12 @@ local function parked(b,slot)
     if not b or not b.loaded or not integer(slot) or slot>3 then return nil end
     local id=b.slots[slot+1];if not id or id==0 then return nil end
     local v=update_get_map_vehicle_by_id(id)
-    return mm_is_parked_at_airfield(v) and v:get_team()==update_get_screen_team_id() and v or nil
+    return mm_is_parked_at_airfield(v) and v:get_id()==id and v:get_team()==update_get_screen_team_id() and v or nil
 end
-function mm_launch(tile,index,slot,x,z)
+function mm_launch(tile,index,slot,x,z,expected_vehicle)
     local b=base(tile,index);local v=parked(b,slot)
     if not own(tile) or not v or not finite(x) or not finite(z)then return false end
+    if expected_vehicle~=nil and v:get_id()~=expected_vehicle then return false end
     v:clear_waypoints();v:clear_attack_target();v:add_waypoint(x,z);return true
 end
 local function project(x,z)
@@ -245,7 +246,7 @@ end
 local function close()ui.base=nil;ui.mode='base';ui.controls={};ui.message=nil end
 function mm_open_airfield(tile,index)
     local b=base(tile,index);if not b then return false end
-    ui.base={tile=tile,index=index};ui.slot=0;ui.mode='base';ui.focus=1;ui.message=nil;ui.land_page=0;ui.hardpoint_page=0
+    ui.base={tile=tile,index=index};ui.slot=0;ui.mode='base';ui.focus=1;ui.message=nil;ui.vehicle=nil;ui.attachment=nil
     if g_selection and type(g_selection.clear)=='function'then g_selection:clear()end
     return true
 end
@@ -279,15 +280,20 @@ local function outline(x,y,w,h,c)
     update_ui_rectangle(x,y,w,1,c);update_ui_rectangle(x,y+h-1,w,1,c)
     update_ui_rectangle(x,y,1,h,c);update_ui_rectangle(x+w-1,y,1,h,c)
 end
-local function button(x,y,w,h,label,enabled,action,selected,detail,icon)
+local function control(x,y,w,h,enabled,action)
     local n=#ui.controls+1
     ui.controls[n]={x=x,y=y,w=w,h=h,enabled=enabled,action=action}
     local px,py=cursor()
     if g_is_mouse_mode~=false and enabled and px>=x and px<x+w and py>=y and py<y+h then ui.focus=n end
     local focused=ui.focus==n and enabled
+    return n,focused
+end
+local function button(x,y,w,h,label,enabled,action,selected,detail,icon)
+    local _,focused=control(x,y,w,h,enabled,action)
     local fg=enabled and colour(235,245,245) or colour(110,120,125)
     update_ui_rectangle(x,y,w,h,focused and colour(55,78,84) or colour(24,34,40))
     outline(x,y,w,h,selected and colour(95,220,210) or (focused and colour(235,245,245) or colour(57,73,80)))
+    if label==nil then return end
     local tx=x+5
     if icon and frame.w>=192 then update_ui_image(x+5,y+math.floor((h-16)/2),icon,fg,0);tx=x+25 end
     local tw=x+w-tx-4
@@ -318,8 +324,8 @@ local function current_attachment(v,slot)
 end
 local function back()
     ui.message=nil;ui.focus=1
-    if ui.mode=='loadout' and ui.attachment~=nil then ui.attachment=nil
-    elseif ui.mode~='base'then ui.mode='base';ui.attachment=nil
+    if ui.mode=='loadout'then ui.mode='aircraft';ui.attachment=nil
+    elseif ui.mode~='base'then ui.mode='base';ui.attachment=nil;ui.vehicle=nil
     else close()end
 end
 local function equipment(v)
@@ -347,6 +353,63 @@ local function result(ticks)
         ui.pending=nil;ui.message=reply>0 and 'Loadout changed (free)' or 'Loadout change refused'
     elseif p.age>300 then ui.pending=nil;ui.message='Result unavailable; inspect current loadout' end
 end
+local function open_aircraft(b,slot)
+    local v=parked(b,slot);if not v then return end
+    ui.slot=slot;ui.vehicle=v:get_id();ui.mode='aircraft';ui.attachment=nil;ui.point=nil
+    ui.focus=1;ui.message=nil;ui.choice=nil;ui.page=0
+end
+local function schematic(v,y,enabled)
+    if type(imgui_vehicle_chassis_loadout)~='function' or type(get_ui_vehicle_chassis_attachments)~='function'then
+        text(8,y+20,'Loadout diagram unavailable',frame.w-16,colour(255,210,100),2);return false
+    end
+    local rows=get_ui_vehicle_chassis_attachments(v);local points={}
+    for _,row in ipairs(rows or {})do for _,point in ipairs(row)do
+        if #points>=64 or not integer(point.i) or point.i>=math.min(v:get_attachment_count(),64)then
+            text(8,y+20,'Unsupported loadout layout',frame.w-16,colour(255,210,100),2);return false
+        end
+        points[#points+1]=point
+    end end
+    local window={cx=0,cy=y,is_active=enabled,index_y=0,selected_index_y=0}
+    local adapter={input_action=false,input_pointer_1=false};local next_point=0
+    function adapter:get_window()return window end
+    function adapter:get_region()return frame.w,64 end
+    function adapter:begin_nav_row()end
+    function adapter:end_nav_row()window.index_y=window.index_y+1 end
+    function adapter:hoverable(x,py,w,h)
+        next_point=next_point+1;local point=points[next_point]
+        if not point or x<0 or py<y or x+w>frame.w or py+h>y+64 then return false,false end
+        local slot=point.i
+        local _,focused=control(x,py,w,h,enabled,function()
+            ui.attachment=slot;ui.point=slot;ui.mode='loadout';ui.page=0;ui.focus=1;ui.message=nil;ui.choice=nil
+        end)
+        local px,pz=cursor();local hovered=px>=x and px<x+w and pz>=py and pz<py+h
+        if focused then ui.point=slot end
+        return hovered,ui.mode=='loadout' and ui.attachment==slot or (ui.mode~='loadout' and focused)
+    end
+    -- Call the existing carrier widget against this owned input adapter. Its
+    -- sprites, hardpoint geometry, equipment icons and supply bars stay native.
+    update_ui_push_clip(0,y,frame.w,64)
+    imgui_vehicle_chassis_loadout(adapter,v)
+    update_ui_pop_clip()
+    if ui.point==nil and points[1]then ui.point=points[1].i end
+    if #points==0 then text(8,y+25,'No mapped hardpoints',frame.w-16,colour(155,175,180))end
+    return true
+end
+local function options(v)
+    local current=current_attachment(v,ui.attachment)
+    local out={{definition=-1,name='Clear attachment',icon=atlas_icons and atlas_icons.icon_attachment_16_none}}
+    if type(update_get_attachment_option_count)=='function'then
+        local kind=v:get_attachment_type(ui.attachment)
+        for i=0,math.min(update_get_attachment_option_count(kind),255)-1 do
+            local definition=update_get_attachment_option(kind,i)
+            if definition>=0 and (type(update_get_attachment_option_hidden)~='function' or not update_get_attachment_option_hidden(definition))then
+                local info=type(get_attachment_data_by_definition_index)=='function' and get_attachment_data_by_definition_index(definition)
+                out[#out+1]={definition=definition,name=info and info.name or ('Attachment '..definition),icon=info and info.icon16}
+            end
+        end
+    end
+    return out,current
+end
 local function panel()
     if not ui.base then
         if ui.route then
@@ -361,147 +424,110 @@ local function panel()
     end
     local b=base(ui.base.tile,ui.base.index);if not b then close();return end
     ui.controls={}
-    local compact,narrow=frame.h<180,frame.w<220
-    local white=colour(235,245,245);local muted=colour(155,175,180)
-    local t=update_get_tile_by_id(b.tile);local label=type(t.get_name)=='function' and t:get_name() or tostring(b.tile)
+    local compact=frame.h<224;local narrow=frame.w<220
+    local white,muted=colour(235,245,245),colour(155,175,180)
     local v=parked(b,ui.slot)
-    if ui.mode=='loadout' and not v then ui.mode='base';ui.attachment=nil end
+    if ui.mode~='base' and (not v or v:get_id()~=ui.vehicle)then
+        ui.mode='base';ui.vehicle=nil;ui.attachment=nil;ui.message='Aircraft left its bay'
+    end
+    local t=update_get_tile_by_id(b.tile)
+    local label=type(t.get_name)=='function' and t:get_name() or tostring(b.tile)
     update_ui_rectangle(0,0,frame.w,frame.h,colour(8,14,18,255))
     update_ui_rectangle(0,0,frame.w,16,white)
-    local heading='AIRFIELD: '..label
-    if narrow and ui.mode=='land'then heading='LAND AIRCRAFT'
-    elseif narrow and ui.mode=='loadout'then heading=ui.attachment~=nil and 'HARDPOINT '..(ui.attachment+1) or 'LOADOUT (FREE)'end
+    local heading=ui.mode=='base' and 'AIRFIELD: '..label or ('B'..(ui.slot+1)..' '..name(v)..' #'..v:get_id())
     text(6,4,heading,frame.w-32,colour(0,0,0))
-    local footer=compact and 12 or 24
-    local message=ui.message
-    if ui.pending then message='Changing loadout...'
-    elseif not b.loaded then message='Approach island to view hangar data'end
     if ui.mode=='base'then
         local arriving=frame.arrivals and frame.arrivals[b.tile] or 0
-        local heading=narrow and 'HANGAR / 4 BAYS' or 'HANGAR / SELECT A BAY'
-        if arriving>0 then heading=narrow and ('ARRIVALS: '..arriving) or ('4 BAYS / '..arriving..' ARRIVING')end
-        text(8,20,heading,frame.w-16,muted)
-        local gap=4;local card_w=math.floor((frame.w-20)/2)
-        local card_h=compact and 19 or math.max(21,math.min(44,math.floor((frame.h-146)/2)))
-        local grid_y=compact and 30 or 33
+        text(8,20,arriving>0 and ('ARRIVALS: '..arriving) or 'SELECT AIRCRAFT',frame.w-16,muted)
+        local footer=compact and 12 or 24;local gap=4
+        local card_w=math.floor((frame.w-20)/2)
+        local card_h=math.min(86,math.floor((frame.h-30-footer-10-gap)/2))
         for i=0,3 do local slot=i;local id=b.slots[i+1] or 0
-            local a=id>0 and update_get_map_vehicle_by_id(id)
-            local available=a and a:get()
-            local chassis,icon,handle=aircraft_data(available and a or nil)
-            if narrow and handle then chassis=handle end
-            if narrow and id==0 then chassis='Empty'end
-            if not b.loaded then chassis='No live data';icon=nil
-            elseif id>0 and not available then chassis='Unavailable'end
-            local detail=id==0 and 'EMPTY' or ('#'..id..(parked(b,i) and ' / PARKED' or ' / BUSY'))
-            local x=8+(i%2)*(card_w+gap);local y=grid_y+math.floor(i/2)*(card_h+gap)
-            -- Bay number is always visible independently of a long chassis name.
-            local number_w=narrow and 12 or 16
-            update_ui_rectangle(x,y,number_w,card_h,colour(45,61,67))
-            text(x+4,y+math.floor((card_h-8)/2),i+1,12,white)
-            button(x+number_w,y,card_w-number_w,card_h,chassis,b.loaded,function()ui.slot=slot;ui.message=nil end,
-                ui.slot==i,not compact and detail or nil,not compact and not narrow and icon or nil)
-        end
-        local action_h=compact and 16 or 24
-        local action_y=frame.h-footer-action_h*2-8
-        local grid_end=grid_y+card_h*2+gap
-        if not compact and action_y-grid_end>=29 then
-            local selected=v and name(v)..' #'..v:get_id() or (b.loaded and 'Empty bay' or 'No live aircraft data')
-            text(8,grid_end+7,'BAY '..(ui.slot+1)..' / '..selected,frame.w-16,white)
-            local stats={}
-            for _,item in ipairs({{'get_repair_factor','HP'},{'get_fuel_factor','FUEL'},{'get_ammo_factor','AMMO'}})do
-                if v and type(v[item[1]])=='function'then
-                    local value=v[item[1]](v);if finite(value)then stats[#stats+1]=item[2]..' '..math.floor(value*100+.5)..'%'end
+            local a=parked(b,i)
+            local chassis,icon,handle=aircraft_data(a)
+            local x=8+(i%2)*(card_w+gap);local y=30+math.floor(i/2)*(card_h+gap)
+            button(x,y,card_w,card_h,nil,a~=nil,function()open_aircraft(b,slot)end)
+            text(x+3,y+3,tostring(i+1),12,white)
+            if a then
+                local image=icon;local size=16
+                if card_w>=80 and card_h>=78 and type(get_chassis_image_by_definition_index)=='function'then
+                    image=get_chassis_image_by_definition_index(a:get_definition_index());size=64
                 end
+                if image then update_ui_image(x+math.floor((card_w-size)/2),y+math.max(3,math.floor((card_h-size-12)/2)),image,white,0)end
+                text(x+3,y+card_h-10,narrow and (handle or chassis) or (chassis..' #'..id),card_w-6,white)
+            else
+                local state=not b.loaded and 'NO DATA' or (id==0 and 'EMPTY' or 'BUSY')
+                text(x+3,y+math.floor(card_h/2),state,card_w-6,muted)
             end
-            text(8,grid_end+19,table.concat(stats,'  '),frame.w-16,muted)
         end
-        local half=math.floor((frame.w-20)/2)
-        button(8,action_y,half,action_h,frame.w<220 and 'Loadout' or 'Loadout (free)',equipment(v),function()
-            ui.mode='loadout';ui.attachment=nil;ui.hardpoint_page=0;ui.focus=1;ui.message=nil
-        end)
-        button(12+half,action_y,half,action_h,'Launch',v~=nil and not ui.pending,function()
-            ui.route={tile=b.tile,index=b.index,slot=ui.slot};close()
-        end)
-        button(8,action_y+action_h+4,frame.w-16,action_h,'Land aircraft...',b.index==0,function()
-            ui.mode='land';ui.land_page=0;ui.focus=1;ui.message=nil
-        end)
-        if not message then
-            if not b.loaded then message='Approach island to view hangar data'
-            elseif not v then message=(b.slots[ui.slot+1] or 0)==0 and 'Empty bay: land an aircraft here' or 'Aircraft is busy or unavailable'
-            elseif mm_remote_host()then message='Remote loadout control unavailable'
-            elseif read('equipment',0)~=1 then message='Loadout needs the matching SDK'
-            else message=narrow and 'Choose an action' or 'Select bay, then loadout or launch'end
-        end
+        local message=ui.message or (not b.loaded and 'Approach island for hangar data' or 'Select aircraft to edit its loadout')
+        update_ui_rectangle(0,frame.h-footer-1,frame.w,1,colour(57,73,80))
+        text(8,frame.h-footer+2,message,frame.w-16,muted,compact and 1 or 2)
     else
-        local rows={};local page_field;local title
-        if ui.mode=='land'then
-            title='LAND / SELECT AIRCRAFT';page_field='land_page'
-            for i=0,update_get_map_vehicle_count()-1 do
-                local a=update_get_map_vehicle_by_index(i)
-                if mm_can_land(a) and a:get_team()==update_get_screen_team_id() and a:get_dock_state()==e_vehicle_dock_state.undocked and a:get_attached_parent_id()==0 then
-                    local chassis,icon=aircraft_data(a)
-                    rows[#rows+1]={label=chassis,detail='#'..a:get_id()..' / AIRBORNE',icon=icon,enabled=true,action=function()
-                        ui.message=mm_issue_landing(a,b) and 'Landing ordered' or 'Landing unavailable';ui.mode='base';ui.focus=1
-                    end}
-                end
+        local action_h=compact and 18 or 24;local action_y=frame.h-action_h-2
+        local graph_y=30
+        local show_diagram=ui.mode=='aircraft' or not compact
+        if show_diagram then schematic(v,graph_y,equipment(v))end
+        if ui.mode=='aircraft'then
+            text(8,20,'Select a hardpoint',frame.w-16,muted)
+            local selected=ui.point
+            local description='No configurable hardpoints'
+            if selected~=nil then
+                local _,current=current_attachment(v,selected)
+                description='Current: '..current
             end
-            if #rows==0 then message=message or 'No airborne aircraft available'end
-        elseif ui.attachment~=nil then
-            title='BAY '..(ui.slot+1)..' / HARDPOINT '..(ui.attachment+1);page_field='page'
-            local current=current_attachment(v,ui.attachment)
-            local options={{definition=-1,name='Clear attachment',icon=atlas_icons and atlas_icons.icon_attachment_16_none}}
-            if type(update_get_attachment_option_count)=='function'then
-                local kind=v:get_attachment_type(ui.attachment)
-                for i=0,math.min(update_get_attachment_option_count(kind),255)-1 do
-                    local definition=update_get_attachment_option(kind,i)
-                    if definition>=0 and (type(update_get_attachment_option_hidden)~='function' or not update_get_attachment_option_hidden(definition))then
-                        local info=type(get_attachment_data_by_definition_index)=='function' and get_attachment_data_by_definition_index(definition)
-                        options[#options+1]={definition=definition,name=info and info.name or ('Attachment '..definition),icon=info and info.icon16}
+            text(8,96,compact and ui.message or description,frame.w-16,white,compact and 1 or 2)
+            if not compact then
+                local stats={}
+                for _,item in ipairs({{'get_repair_factor','HP'},{'get_fuel_factor','FUEL'},{'get_ammo_factor','AMMO'}})do
+                    if type(v[item[1]])=='function'then
+                        local value=v[item[1]](v);if finite(value)then stats[#stats+1]=item[2]..' '..math.floor(value*100+.5)..'%'end
                     end
                 end
-            end
-            for _,option in ipairs(options)do
-                local fitted=option.definition==current
-                rows[#rows+1]={label=option.name,detail=fitted and 'FITTED' or (option.definition<0 and 'Leave hardpoint empty' or 'FREE / FULL AMMO'),icon=option.icon,
-                    selected=fitted,enabled=equipment(v) and not fitted,action=function()
-                        local ok=mm_set_loadout(v,ui.attachment,option.definition)
-                        ui.message=ok and 'Changing loadout...' or 'Change refused';ui.attachment=nil;ui.focus=1
-                    end}
+                text(8,121,table.concat(stats,'  '),frame.w-16,muted)
+                if not ui.message then text(8,139,'Select a point on the aircraft',frame.w-16,muted,2)end
             end
         else
-            title='BAY '..(ui.slot+1)..' / LOADOUT';page_field='hardpoint_page'
-            for i=0,math.min(v:get_attachment_count(),64)-1 do local slot=i
-                local _,current,icon=current_attachment(v,i)
-                rows[#rows+1]={label='Hardpoint '..(i+1),detail=current,icon=icon,enabled=equipment(v),action=function()
-                    ui.attachment=slot;ui.page=0;ui.focus=1;ui.message=nil
-                end}
+            local choices,current=options(v)
+            text(8,20,ui.message or 'EQUIPMENT / FREE',frame.w-16,muted)
+            local grid_y=compact and 34 or 112;local cell=24;local gap=4
+            local columns=math.max(1,math.floor((frame.w-16+gap)/(cell+gap)))
+            local rows=compact and 1 or math.max(1,math.min(2,math.floor((action_y-grid_y-62)/(cell+gap))))
+            local per_page=columns*rows;local pages=math.max(1,math.ceil(#choices/per_page))
+            ui.page=math.max(0,math.min(ui.page or 0,pages-1))
+            local first=ui.page*per_page+1;local last=math.min(#choices,(ui.page+1)*per_page)
+            local description=ui.choice
+            for i=first,last do local choice=choices[i];local ordinal=i-first
+                local x=8+(ordinal%columns)*(cell+gap);local y=grid_y+math.floor(ordinal/columns)*(cell+gap)
+                local _,focused=control(x,y,cell,cell,equipment(v) and choice.definition~=current,function()
+                    ui.choice=choice.name
+                    ui.message=mm_set_loadout(v,ui.attachment,choice.definition) and 'Changing loadout...' or 'Change refused'
+                end)
+                local fitted=choice.definition==current;local fg=fitted and colour(95,220,210) or white
+                update_ui_rectangle(x,y,cell,cell,focused and colour(55,78,84) or colour(24,34,40))
+                outline(x,y,cell,cell,fitted and colour(95,220,210) or (focused and white or colour(57,73,80)))
+                if choice.icon then update_ui_image(x+4,y+4,choice.icon,fg,0)
+                else text(x+4,y+7,tostring(choice.definition),16,fg)end
+                if fitted then update_ui_rectangle(x+2,y+cell-3,cell-4,1,fg)end
+                local px,py=cursor();local hovered=px>=x and px<x+cell and py>=y and py<y+cell
+                if hovered or focused or (not description and fitted)then description=choice.name..(fitted and ' / FITTED' or '')end
             end
-            if #rows==0 then message=message or 'No configurable hardpoints'end
+            local caption_y=grid_y+rows*(cell+gap)
+            text(8,caption_y,ui.pending and 'Changing loadout...' or description or 'Select equipment',frame.w-16,white,2)
+            local nav_y=math.min(action_y-23,caption_y+21)
+            button(8,nav_y,20,18,'<',ui.page>0,function()ui.page=ui.page-1;ui.focus=1 end)
+            text(34,nav_y+5,(ui.page+1)..'/'..pages,frame.w-68,muted)
+            button(frame.w-28,nav_y,20,18,'>',ui.page+1<pages,function()ui.page=ui.page+1;ui.focus=1 end)
         end
-        if narrow and v then title='B'..(ui.slot+1)..' / '..name(v)..' #'..v:get_id()end
-        text(8,21,title,frame.w-16,white)
-        if not compact and v then text(8,35,name(v)..' #'..v:get_id(),frame.w-16,muted)end
-        local row_y=compact and 32 or 49;local row_h=compact and 30 or 36
-        local nav_h=compact and 18 or 22;local nav_y=frame.h-footer-nav_h-2
-        local per_page=math.max(1,math.floor((nav_y-row_y+3)/(row_h+3)))
-        local pages=math.max(1,math.ceil(#rows/per_page))
-        ui[page_field]=math.max(0,math.min(ui[page_field] or 0,pages-1))
-        local page=ui[page_field]
-        for i=page*per_page+1,math.min(#rows,(page+1)*per_page)do
-            local row=rows[i]
-            button(8,row_y,frame.w-16,row_h,row.label,row.enabled,row.action,row.selected,row.detail,row.icon)
-            row_y=row_y+row_h+3
-        end
-        button(8,nav_y,narrow and 36 or 60,nav_h,'Back',true,back)
-        local next_x=frame.w-(narrow and 26 or 44);local prev_x=next_x-(narrow and 52 or 82)
-        button(prev_x,nav_y,narrow and 18 or 30,nav_h,'<',page>0,function()ui[page_field]=page-1;ui.focus=1 end)
-        text(prev_x+(narrow and 21 or 34),nav_y+5,(page+1)..'/'..pages,narrow and 30 or 45,muted)
-        button(next_x,nav_y,narrow and 18 or 36,nav_h,'>',page+1<pages,function()ui[page_field]=page+1;ui.focus=1 end)
-        message=message or (ui.mode=='land' and 'Select aircraft to order landing' or 'Select a hardpoint or attachment')
+        if not compact and ui.mode=='aircraft' and ui.message then text(8,action_y-28,ui.message,frame.w-16,colour(255,210,100),2)end
+        button(8,action_y,narrow and 36 or 60,action_h,'Back',true,back)
+        local launch_x=narrow and 48 or 76
+        button(launch_x,action_y,frame.w-launch_x-8,action_h,narrow and 'Launch' or 'Launch aircraft',not ui.pending,function()
+            ui.route={tile=b.tile,index=b.index,slot=ui.slot,vehicle=ui.vehicle};close()
+        end)
     end
     button(frame.w-21,1,20,14,'X',true,close)
-    update_ui_rectangle(0,frame.h-footer-1,frame.w,1,colour(57,73,80))
-    if message then text(8,frame.h-footer+2,message,frame.w-16,ui.pending and colour(255,210,100) or muted,compact and 1 or 2)end
+
 end
 local original_update,original_event=update,input_event
 if type(original_update)=='function'then
@@ -550,7 +576,7 @@ if type(original_event)=='function'then
                 if pressed and event==e_input.back then ui.route=nil;return end
                 if pressed and (event==e_input.pointer_1 or event==e_input.action_a)then
                     local x,y=cursor();local wx,wz=unproject(x,y);local r=ui.route
-                    if wx and mm_launch(r.tile,r.index,r.slot,wx,wz)then ui.route=nil end
+                    if wx and mm_launch(r.tile,r.index,r.slot,wx,wz,r.vehicle)then ui.route=nil end
                     ui.suppress_release=event
                     g_is_pointer_pressed=false;return
                 end

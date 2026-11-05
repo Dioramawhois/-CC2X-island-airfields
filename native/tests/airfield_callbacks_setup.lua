@@ -17,7 +17,7 @@ function a:clear_waypoints()self.target=nil end
 function a:clear_attack_target()end
 function a:add_waypoint(x,z)self.target={x,z};return 0 end
 function a:get_waypoint_count()return 0 end
-function a:get_attachment_count()return 8 end
+function a:get_attachment_count()return 9 end
 function a:get_attachment_type()return 1 end
 function a:get_attachment()return {get=function()return false end}end
 function a:get_repair_factor()return .75 end
@@ -47,6 +47,34 @@ function update_get_attachment_option_hidden(definition)return definition==36 en
 function get_chassis_data_by_definition_index()return 'Manta',77,'MNT' end
 function get_attachment_data_by_definition_index(definition)return {name='Test weapon '..definition,icon16=78}end
 atlas_icons={map_icon_factory_chassis_air=1,icon_attachment_16_none=79}
+-- Owned substitute for the carrier widget contract, not copied game Lua.
+-- The production helper must call it with the actual selected aircraft and
+-- route its hit boxes through the owned input adapter.
+function get_chassis_image_by_definition_index()return 88 end
+function get_ui_vehicle_chassis_attachments()
+ return {{{i=1,x=-20,y=-18},{i=2,x=0,y=-18},{i=3,x=20,y=-18}},
+         {{i=4,x=-20,y=0},{i=5,x=0,y=0},{i=6,x=20,y=0}},
+         {{i=7,x=-10,y=18},{i=8,x=10,y=18}}}
+end
+hardpoint_hitboxes={};diagram_calls=0
+function update_ui_push_clip()end
+function update_ui_pop_clip()end
+function imgui_vehicle_chassis_loadout(adapter,vehicle)
+ assert(vehicle==test_aircraft,'diagram is not bound to the selected aircraft')
+ diagram_calls=diagram_calls+1;hardpoint_hitboxes={}
+ local window=adapter:get_window();local w=adapter:get_region();local cx=window.cx+(w-64)/2
+ update_ui_image(cx,window.cy,88,color8(235,245,245,255),0)
+ for _,row in ipairs(get_ui_vehicle_chassis_attachments(vehicle))do
+  adapter:begin_nav_row()
+  for _,point in ipairs(row)do
+   local x,y=cx+28+point.x,window.cy+27+point.y
+   local hovered,selected=adapter:hoverable(x,y,8,10,true)
+   hardpoint_hitboxes[#hardpoint_hitboxes+1]={slot=point.i,x=x,y=y}
+   update_ui_rectangle(x,y,8,10,selected and color8(55,78,84,255)or color8(24,34,40,255))
+  end
+  adapter:end_nav_row(0)
+ end
+end
 cc2x={airfields=function()return {{tile=10,index=0,x=900,z=200,runway_start_x=800,runway_start_z=100,
  runway_end_x=1000,runway_end_z=300,hangars={21,0,0,0}}}end,modules={
  read=function(_,topic)if topic=='active' or topic=='planes' or topic=='equipment'then return 1 end

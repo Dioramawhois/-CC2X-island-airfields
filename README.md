@@ -1,6 +1,6 @@
 # Island Airfields
 
-**2.2.0-client-beta.4** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
+**2.2.0-client-beta.5** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
@@ -8,15 +8,18 @@ is retained.
 The published [2.1.2-client-beta.1 download](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1)
 remains the accepted runway-approach release. Version 2.2 has not been published.
 
-In this candidate, click the separate airfield icon for a numbered four-bay overview,
-selected-aircraft status and separate landing/loadout/launch actions. Select a bay,
-change compatible weapons for free or launch the selected aircraft toward a
-chosen point. Use **Land aircraft** or drag an aircraft onto the airfield icon
-for landing. Ordinary ground waypoints stay movement orders. Inventory accounting
-is a separate future task; newly fitted attachments start full. Arrival links and
-QUEUE/HOLD/LAND statuses are restored from host state. The candidate retains
-landing intent in saved engine fields and repairs missing queue entries;
-[native save/reload acceptance is pending](docs/LANDING_SAVE_RELOAD.md).
+Click the airfield icon for four aircraft bays, then click a parked aircraft to
+open its loadout directly. Select hardpoints on the **same graphical widget used
+by the carrier**, and choose compatible equipment by its picture. A separate
+**Launch** button at the bottom returns to the map for the destination.
+
+Landing is issued on the map by dragging the aircraft onto the airfield icon;
+there is no landing menu button. Ordinary ground waypoints remain movement
+orders. Equipment changes remain free and newly fitted attachments start full.
+Arrival links and QUEUE/HOLD/LAND statuses remain available after save/reload.
+The owner confirmed three-arrival reload and equipment changes in beta 4; this
+new graphical UI still needs fresh in-game acceptance. Release preparation is
+paused for this UX revision. [Landing persistence](docs/LANDING_SAVE_RELOAD.md).
 
 The host runs the flight policy through public SDK APIs. The mod has no private
 gameplay DLL and contains no Revolution files or complete game screens.
@@ -59,9 +62,11 @@ The candidate passes owned real-Lua UI/callback and loadout-policy fixtures,
 actual-SDK synthetic flight regressions, syntax-only screen delivery for stock
 and both reviewed Revolution versions, and packaging safety checks. The SDK's
 native equipment path also passes static checks against the exact executable.
-These are offline checks. New icons, loadout construction/clear/refill, save/load
-and launch need fresh ordinary-host acceptance. UI screenshots or direct owner
-confirmation and gameplay confirmation are required before publication.
+The owner confirmed beta 4 save/reload with three arrivals and equipment changes
+in an ordinary-host game. The new carrier-widget adapter has owned substitute
+tests and static stock/Revolution interface inspection; its visuals and controls
+need fresh in-game acceptance. Remote multiplayer and dedicated servers remain
+unverified.
 
 Distant host-side markers use the matching SDK CPU placement preview, with
 no hub-based fallback. They share the hub marker style. Preview latency and

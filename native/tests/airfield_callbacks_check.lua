@@ -40,52 +40,76 @@ local function within_screen()
       'interactive controls overlap on '..width..'x'..height..': '..a[1]..','..a[2]..' / '..b[1]..','..b[2])
  end end
 end
+local function click_point(slot)
+ for _,point in ipairs(hardpoint_hitboxes)do if point.slot==slot then click(point.x+2,point.y+2);return end end
+ error('No clickable carrier hardpoint '..slot)
+end
+local function click_icon(icon)
+ for _,item in ipairs(images)do if item[3]==icon then click(item[1]+5,item[2]+5);return end end
+ error('No equipment image '..icon)
+end
+local function is_diagram()
+ return has('Select a hardpoint') and not has('Land aircraft') and diagram_calls>0
+end
 g_pointer_pos_x,g_pointer_pos_y=120,60;frame()
 input_event(e_input.pointer_1,1);input_event(e_input.pointer_1,0);frame()
-assert(has('HANGAR') and has('Manta') and has('BAY 1') and has('HP 75%') and original_calls==0,'four-bay overview failed')
+assert(has('SELECT AIRCRAFT') and has('Manta #21') and not has('Launch') and not has('Land aircraft') and original_calls==0,
+ 'airfield should open only four aircraft bays')
 within_screen();capture('hangar-256x256')
-click_label('Empty bay');click_label('Loadout (free)')
-assert(not has('Hardpoint 1') and #mail==0,'empty bay opened the previous aircraft loadout')
-click_label('Manta')
-click_label('Loadout (free)');assert(has('Hardpoint 1'),'loadout button failed')
-within_screen();capture('hardpoints-256x256')
-click_label('>');assert(has('Hardpoint 8'),'remaining hardpoints cannot be reached')
-click_label('Hardpoint 8');assert(has('Clear attachment') and has('FITTED'),'current empty attachment not marked')
-click_label('>');assert(has('Test weapon 35') and not has('Test weapon 36'),'hidden carrier options leaked')
-click_label('<');click_label('Test weapon 30')
-assert(#mail==1 and mail[1][1]=='loadout' and mail[1][2]==21)
+local before_diagrams=diagram_calls
+click_label('EMPTY');assert(diagram_calls==before_diagrams,'empty bay opened another aircraft')
+click_label('Manta #21');assert(is_diagram(),'one aircraft click must directly open the carrier diagram')
+within_screen();capture('aircraft-256x256')
+click_point(8);assert(has('EQUIPMENT') and has('FITTED'),'image hardpoint did not open equipment pictures')
+within_screen();capture('equipment-256x256')
+click_icon(78)
+assert(#mail==1 and mail[1][1]=='loadout' and mail[1][2]==21 and math.floor(mail[1][3]%8192/128)==8,
+ 'graphical hardpoint did not address its actual attachment index')
 assert(not mm_set_loadout(test_aircraft,0,30),'duplicate pending mutation allowed')
+local old_target=test_aircraft.target
+click_label('Launch aircraft');assert(test_aircraft.target==old_target and has('Changing loadout'),'pending refit did not block launch')
 reply=mail[1][3];frame();assert(mm_set_loadout(test_aircraft,0,30))
 reply=-mail[2][3];frame()
-input_event(e_input.back,1);frame()
-assert(has('HANGAR'),'hardpoint Back did not return to hangar')
-click_label('Loadout (free)');click_label('Hardpoint 1')
-input_event(e_input.back,1);frame();assert(has('Hardpoint 1'),'attachment Back skipped the hardpoint list')
-input_event(e_input.back,1);frame();click_label('Launch')
-click(140,160)
-assert(test_aircraft.target and math.abs(test_aircraft.target[1]-1100)<.001 and math.abs(test_aircraft.target[2]-1200)<.001,'launch did not invert original transform')
--- Layout and pagination stay usable on the small in-game monitor.
+input_event(e_input.back,1);frame();assert(is_diagram(),'weapon Back must return to aircraft diagram')
+input_event(e_input.back,1);frame();assert(has('SELECT AIRCRAFT'),'aircraft Back must return to airfield')
+click_label('Manta #21');click_label('Launch aircraft');click(140,160)
+assert(test_aircraft.target and math.abs(test_aircraft.target[1]-1100)<.001 and math.abs(test_aircraft.target[2]-1200)<.001,
+ 'launch did not invert original map transform')
+-- Every supported monitor preserves the requested direct flow and image choices.
 for _,size in ipairs({{128,128},{128,256},{192,128},{256,128},{256,192},{512,256}})do
  width,height=size[1],size[2];assert(mm_open_airfield(10,0));frame();within_screen()
+ assert(not has('Land aircraft') and not has('Loadout (free)'),'removed menu actions came back')
  if height==128 then capture('hangar-'..width..'x128')end
- click_label(width<220 and 'Loadout' or 'Loadout (free)');within_screen()
- if height==128 then capture('hardpoints-'..width..'x128')end
- local pages=0
- while not has('Hardpoint 8')do click_label('>');within_screen();pages=pages+1;assert(pages<8)end
- click_label('Hardpoint 8');within_screen()
- -- Long translated names wrap inside rows and do not cover navigation.
+ click_label(width<220 and 'MNT' or 'Manta #21');assert(is_diagram());within_screen()
+ if height==128 then capture('aircraft-'..width..'x128')end
+ assert(#hardpoint_hitboxes==8,'carrier layout lost an editable hardpoint')
+ click_point(8);within_screen()
+ if height==128 then capture('equipment-'..width..'x128')end
  local old=get_attachment_data_by_definition_index
  function get_attachment_data_by_definition_index()return {name='Extended range infrared guided anti air missile',icon16=78}end
- frame();within_screen()
- if height==128 then capture('weapons-'..width..'x128')end
- get_attachment_data_by_definition_index=old
+ frame();within_screen();get_attachment_data_by_definition_index=old
+ if width==128 and height==128 then
+  click_label('>');within_screen()
+  assert(has('2/2') and #images==3,'last image page should contain three choices, excluding the hidden definition')
+  click_label('<')
+ end
+ input_event(e_input.back,1);frame();assert(is_diagram())
 end
-width,height=256,256;assert(mm_open_airfield(10,0));frame()
--- Gamepad paths retain action parity with the pointer; opening loadout is safe.
-g_is_mouse_mode=false
-for _,event in ipairs({e_input.right,e_input.left,e_input.down,e_input.down})do input_event(event,1)end
-input_event(e_input.action_a,1);frame();assert(has('Hardpoint 1'),'gamepad cannot reach loadout')
-input_event(e_input.back,1);frame()
+width,height=256,256;assert(mm_open_airfield(10,0));g_is_mouse_mode=false;frame()
+input_event(e_input.action_a,1);frame();assert(is_diagram(),'gamepad aircraft selection added an extra menu step')
+input_event(e_input.action_a,1);frame();assert(has('EQUIPMENT'),'gamepad cannot select a point on the native diagram')
+input_event(e_input.back,1);frame();input_event(e_input.back,1);frame()
+-- Same bay occupied by a different vehicle must not retarget an open editor.
+g_is_mouse_mode=true
+click_label('Manta #21');local old_id=test_aircraft.get_id
+function test_aircraft:get_id()return 22 end
+frame();assert(not is_diagram() and has('Aircraft left'),'editor silently switched to another aircraft')
+test_aircraft.get_id=old_id
+assert(not mm_launch(10,0,0,140,160,22),'launch destination silently retargeted a replacement aircraft')
+assert(mm_open_airfield(10,0));frame();click_label('Manta #21')
+local native_diagram=imgui_vehicle_chassis_loadout;imgui_vehicle_chassis_loadout=nil
+frame();assert(has('diagram unavailable'),'missing carrier widget must fail visibly')
+imgui_vehicle_chassis_loadout=native_diagram
 visible=false;frame();local before=original_calls;input_event(e_input.action_a,1)
 assert(original_calls==before+1,'invisible map intercepted an original input')
 -- Fresh UI state must reconstruct every saved arrival from host metadata,
@@ -124,4 +148,4 @@ cc2x.modules.read,update_get_map_vehicle_count,update_get_map_vehicle_by_index=o
 -- Stock holomap has no Revolution helper; its own camera/aspect function is used.
 get_holomap_from_world=nil;drawn={};mm_draw_airfields(256,256,true)
 assert(drawn[1][1]==118 and drawn[1][2]==49 and #drawn==6)
-print('PASS readable four-bay overview, status, hardpoint/weapon pages, fitted and hidden choices, hierarchical Back, bounded 128/192/256px layouts, free mailbox/pending guard, gamepad, launch transform and stock fallback')
+print('PASS four-bay direct aircraft flow, native carrier widget adapter and real hardpoint indices, picture choices, bottom launch, no landing menu, pending/bay identity guards, mouse/gamepad, monitor bounds, saved queue links and holomap fallback')
