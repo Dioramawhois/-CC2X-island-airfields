@@ -19,6 +19,8 @@ function M.new(cc2, settings)
     local W, F, P = cc2.world, cc2.world.fields, {}
     local generation, pending, flights, locks, plans, plan_order = 0, {}, {}, {}, {}, {}
     local now = 0
+    local site_queue,site_seen,site_revision = {},{},0
+    local restored = false
     local function field(name)
         local value=F['CC2X_'..name];assert(value, 'Missing SDK field: '..name);return value
     end
@@ -49,7 +51,13 @@ function M.new(cc2, settings)
         if current == 0 then return false end
         if current ~= generation then
             generation, pending, flights, locks, plans, plan_order = current, {}, {}, {}, {}, {}
-            publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 1)
+            publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 2)
+            site_queue,site_seen,site_revision={},{},0
+            restored=false
+            publish('session', 0, current)
+            publish('layout_revision',0,0);publish('layout_error',0,0)
+            publish('tile_sites',0,cc2.tiles and type(cc2.tiles.sites)=='function' and 1 or 0)
+            publish('equipment',0,cc2.equipment and cc2.equipment.available() and 1 or 0)
         end
         now = cc2.session.tick()
         return true
@@ -64,6 +72,7 @@ function M.new(cc2, settings)
         end
     end
     local function slot(af, vid)
+        if count(af, 'AIRFIELD_HANGARS') ~= 4 then return -1 end
         local k = list_find(af, 'AIRFIELD_HANGARS', vid)
         if k < 0 then k = list_find(af, 'AIRFIELD_HANGARS', 0); if k >= 0 then si(af, 'AIRFIELD_HANGARS', vid, k) end end
         return k
@@ -83,10 +92,14 @@ function M.new(cc2, settings)
             si(wp, 'WAYPOINT_TYPE', field('WAYPOINT_MOVE')); si(wp, 'WAYPOINT_PARAM', 0)
         end
     end
-    local function do_land(v, i, explicit_publish)
+    local function landing_status(vid,tid,stage)
+        publish('landing',vid,tid);publish('landing_stage',vid,stage)
+    end
+    local function do_land(v, i, explicit_publish,tid)
         cleanup(i)
         if not i:request_landing(v) then return false end
         assert(v:list_clear(field('VEHICLE_WAYPOINTS')))
+        landing_status(id(v),tid,2)
         if explicit_publish then assert(v:waypoints_sync()) end
         return true
     end
@@ -99,9 +112,9 @@ function M.new(cc2, settings)
         local i = island(t)
         if not i then
             if #sorted_keys(pending) >= 32 then return 0 end
-            pending[vid] = tid; return 2
+            pending[vid] = tid;landing_status(vid,tid,1);return 2
         end
-        if count(i, 'ISLAND_AIRFIELDS') == 0 or not do_land(v, i, explicit_publish) then return 0 end
+        if count(i, 'ISLAND_AIRFIELDS') == 0 or not do_land(v, i, explicit_publish,tid) then return 0 end
         return 1
     end
     local function attachment_flags(v, flying)
@@ -120,17 +133,20 @@ function M.new(cc2, settings)
         locks[k] = f.vid; return true
     end
     local function lock_free(f) local k = key(f.tid, f.index); if locks[k] == f.vid then locks[k] = nil end end
-    local function finish(f) lock_free(f); flights[f.vid] = nil end
+    local function finish(f) lock_free(f); flights[f.vid] = nil;landing_status(f.vid,0,0) end
     local function phase(f, name)
         if f.phase ~= name then print(('vehicle %d: %s -> %s (tile %d)'):format(f.vid, f.phase, name, f.tid)) end
         f.phase = name
+        if not f.takeoff then landing_status(f.vid,f.tid,name=='hold' and 3 or (name=='rollout' and 5 or 4)) end
     end
     local function new_flight(v, tid, index, bay, takeoff, name)
         if not flights[id(v)] and #sorted_keys(flights) >= 32 then return nil end
         local f = {vid=id(v), team=gi(v,'VEHICLE_TEAM'), tid=tid, index=index, slot=bay, takeoff=takeoff, phase=name,
                    start=now, yaw=nil, speed=0, vz=0, roll=0, hv={0,0}, side=0, gear=false,
                    stand=1, lined=false, go_arounds=0, min_clear=1e9}
-        flights[f.vid] = f; return f
+        flights[f.vid] = f
+        landing_status(f.vid,takeoff and 0 or tid,takeoff and 0 or 4)
+        return f
     end
     local function body(v)
         local b = v:body(); if not b then return nil end
@@ -200,6 +216,7 @@ function M.new(cc2, settings)
         spot[2]=max(spot[2],floor)+clamp(stand,.3,4)+(wing(v) and 1.5 or 1)
         put_at(v,spot,yaw); v:brakes(1,1); sf(v,'VEHICLE_CONTROL_SPEED',0);sf(v,'VEHICLE_CONTROL_POWER',0)
         si(v,'VEHICLE_CONTROL_TAXI',1);si(v,'VEHICLE_DOCK_STATE',field('DOCK_DOCKED'));si(v,'VEHICLE_FLIGHT_STATE',field('FLIGHT_PARKED'));attachment_flags(v,0)
+        si(v,'VEHICLE_DOCK_TILE',f.tid);si(v,'VEHICLE_DOCK_AIRFIELD',f.index)
         publish('dock',f.vid,field('DOCK_DOCKED'));print(('vehicle %d: LANDED (%s) tile %d hangar %d'):format(f.vid,wing(v) and 'plane' or 'helicopter',f.tid,f.slot))
     end
     local function hand_back(f,af,v)
@@ -320,7 +337,11 @@ function M.new(cc2, settings)
     end
     local function start_landing(af,v,tid,index,bay)
         local f=new_flight(v,tid,index,bay,false,wing(v) and 'inbound' or 'heli_inbound');if not f then return nil end
-        undock(v,field('DOCK_DOCKING'));flying(v);return f
+        undock(v,field('DOCK_DOCKING'))
+        -- Native docking_queue_data is serialized. Retain the actual target
+        -- throughout approach/holding instead of leaving it only in Lua.
+        si(v,'VEHICLE_DOCK_TILE',tid);si(v,'VEHICLE_DOCK_AIRFIELD',index)
+        flying(v);return f
     end
     local function ours(v) return v and human(v) and air(v) and (not wing(v) or (settings.planes and settings.plane_assist)) end
     local function take_from_queue(af,tid,index)
@@ -342,10 +363,27 @@ function M.new(cc2, settings)
     local function adopt(af,tid,index)
         for _, record in ipairs(W.vehicles() or {}) do
             local v=vehicle(record.id)
-            if ours(v) and gi(v,'VEHICLE_TEAM')==gi(tile(tid),'TILE_TEAM') and gi(v,'VEHICLE_ATTACHED_TO')==0 and gi(v,'VEHICLE_DOCK_VEHICLE')==0 and
-               (dock(v)==field('DOCK_DOCKING') or dock(v)==field('DOCK_TAXI')) and not flights[id(v)] and distance(af,v)<=6000 then
-                local old=dock(v);local bay=slot(af,id(v))
-                if bay>=0 then local f=start_landing(af,v,tid,index,bay);if f and old==field('DOCK_TAXI') then park(f,af,v,1);finish(f) end end
+            if ours(v) and gi(v,'VEHICLE_TEAM')==gi(tile(tid),'TILE_TEAM') and gi(v,'VEHICLE_ATTACHED_TO')==0 and gi(v,'VEHICLE_DOCK_VEHICLE')==0 then
+                local target=gi(v,'VEHICLE_DOCK_TILE')
+                local exact=target==tid and gi(v,'VEHICLE_DOCK_AIRFIELD')==index
+                local member=list_find(af,'AIRFIELD_HANGARS',id(v))>=0
+                -- Legacy active saves cleared docking_queue_data. The saved
+                -- hangar reservation still identifies the exact airfield;
+                -- proximity alone must never select a destination.
+                local legacy=target==0 and member
+                if dock(v)==field('DOCK_QUEUED') and exact then
+                    landing_status(id(v),tid,2)
+                    if not flights[id(v)] and list_find(af,'AIRFIELD_DOCK_QUEUE',id(v))<0 and gi(af,'AIRFIELD_RUNWAY_VEHICLE')~=id(v) then
+                        assert(af:list_push(field('AIRFIELD_DOCK_QUEUE'),id(v)))
+                        print(('vehicle %d: restored landing queue (tile %d)'):format(id(v),tid))
+                    end
+                elseif (dock(v)==field('DOCK_DOCKING') or dock(v)==field('DOCK_TAXI')) and not flights[id(v)] and (exact or legacy) then
+                    local old=dock(v);local bay=slot(af,id(v))
+                    if bay>=0 then
+                        local f=start_landing(af,v,tid,index,bay)
+                        if f and old==field('DOCK_TAXI') then park(f,af,v,1);finish(f) end
+                    end
+                end
             end
         end
     end
@@ -384,21 +422,32 @@ function M.new(cc2, settings)
             local k=list_find(af,'AIRFIELD_DOCK_QUEUE',id(v));if k>=0 then af:list_remove(field('AIRFIELD_DOCK_QUEUE'),k);found=true end
             if found then release(af,id(v));undock(v,field('DOCK_UNDOCKED'));si(v,'VEHICLE_FLIGHT_STATE',field('FLIGHT_PARKED'));si(v,'VEHICLE_CONTROL_MODE',0);si(v,'VEHICLE_CONTROL_TAXI',0);return end
         end end end
+        -- A saved/native queued aircraft can outlive its queue entry. An
+        -- explicit cancellation still clears that serialized docking intent.
+        local tid=gi(v,'VEHICLE_DOCK_TILE');local t=tid>0 and tile(tid)
+        if t and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM')then
+            undock(v,field('DOCK_UNDOCKED'));flying(v)
+            si(v,'VEHICLE_CONTROL_MODE',0);si(v,'VEHICLE_CONTROL_TAXI',0);sf(v,'VEHICLE_CONTROL_POWER',1)
+        end
     end
     function P.waypoints(vid)
         if not sync_session() then return end
         local v=vehicle(vid);if not v or not air(v) or not human(v) then return end
-        pending[vid]=nil
-        local wp=ref(v,'VEHICLE_WAYPOINTS',0);if not wp then return end
+        local wp=ref(v,'VEHICLE_WAYPOINTS',0)
         local origin=cc2.orders.current()
         if not origin or origin.vehicle_id~=vid or not origin.broadcast_pending then
             move(wp);publish('request_result',vid,0);return
         end
+        pending[vid]=nil
+        if not wp then cancel(v);landing_status(vid,0,0);return end
         if dock(v)==field('DOCK_DOCKED') then if gi(v,'VEHICLE_ATTACHED_TO')==0 then takeoff(v,wp) end;return end
-        if gi(wp,'WAYPOINT_TYPE')~=field('WAYPOINT_BARGE_LOAD_TILE') then cancel(v);return end
+        if gi(wp,'WAYPOINT_TYPE')~=field('WAYPOINT_BARGE_LOAD_TILE') then cancel(v);landing_status(vid,0,0);return end
+        cancel(v)
         local tid=gi(wp,'WAYPOINT_PARAM');local result=land(v,tid,false);publish('request_result',vid,result)
         print(('vehicle %d: landing request tile %d peer %d result %d'):format(vid,tid,origin.peer_id,result))
-        if result~=1 then move(wp) end
+        -- A deferred explicit waypoint is the durable command until native
+        -- docking accepts it. Ordinary ground points are never promoted.
+        if result==0 then move(wp);landing_status(vid,0,0) end
     end
     function P.hangar(vid,tid,index)
         if not sync_session() then return -1 end
@@ -408,7 +457,8 @@ function M.new(cc2, settings)
     function P.airfield(tid,index)
         if not sync_session() then return end
         local af=airfield(tid,index);if not af then return end
-        take_from_runway(af,tid,index);take_from_queue(af,tid,index);if now%32==5 then adopt(af,tid,index) end
+        if now%16==5 then adopt(af,tid,index) end
+        take_from_runway(af,tid,index);take_from_queue(af,tid,index)
         for _,vid in ipairs(sorted_keys(flights)) do local f=flights[vid];if f.tid==tid and f.index==index then
             local v=vehicle(vid)
             if not v then release(af,vid);finish(f)
@@ -427,14 +477,87 @@ function M.new(cc2, settings)
             end
         end end
     end
+    local function loadout(message)
+        local vid,payload=message.subject,message.value
+        if type(vid)~='number' or vid%1~=0 or vid<=0 or vid>4294967295 or type(payload)~='number' or
+           payload%1~=0 or payload<35184372088832 or payload>=9007199254740992 or
+           math.floor(payload/8192)%4294967296~=vid then return end
+        local packed=payload%8192;local hardpoint=math.floor(packed/128);local definition=packed%128-1
+        local v=vehicle(vid);local ok=false
+        if v and human(v) and air(v) and dock(v)==field('DOCK_DOCKED') and gi(v,'VEHICLE_ATTACHED_TO')==0 and
+           count(v,'VEHICLE_WAYPOINTS')==0 and not flights[vid] and not pending[vid] and definition<=101 and cc2.equipment then
+            local tid,index=gi(v,'VEHICLE_DOCK_TILE'),gi(v,'VEHICLE_DOCK_AIRFIELD')
+            local t=tile(tid);local af=t and airfield(tid,index)
+            if t and af and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM') and count(af,'AIRFIELD_HANGARS')==4 and
+               list_find(af,'AIRFIELD_HANGARS',vid)>=0 and list_find(af,'AIRFIELD_DOCK_QUEUE',vid)<0 and
+               list_find(af,'AIRFIELD_UNDOCK_QUEUE',vid)<0 then
+                ok=cc2.equipment.set_attachment(vid,hardpoint,definition,true)==true
+            end
+        end
+        -- Bounded ring of acknowledgements; a missed response never retries a mutation.
+        publish('loadout_reply',vid%32,ok and payload or -payload)
+    end
+    local function request_sites(tid)
+        if type(tid)~='number' or tid<=0 or tid%1~=0 or tid>4294967295 or site_seen[tid] or #site_queue>=64 then return end
+        local t=tile(tid);if not t or not cc2.tiles or type(cc2.tiles.sites)~='function'then return end
+        local team=gi(t,'TILE_TEAM');local allowed=false
+        for _,v in ipairs(W.vehicles() or {})do if v.team==team and v.team_is_ai==false then allowed=true;break end end
+        if allowed then site_seen[tid]=true;site_queue[#site_queue+1]=tid end
+    end
+    local function discover_site()
+        if #site_queue==0 or now%16~=1 then return end
+        local tid=table.remove(site_queue,1)
+        -- Stock's own airfield builder selects environment kind 0 / definition 3.
+        -- The SDK generates CPU placement data without streaming a live island.
+        local sites,why=cc2.tiles.sites(tid,0,3)
+        if sites then
+            local active={};for _,site in ipairs(sites)do if type(site.flags_low)=='number' and (site.flags_low&255)~=0 then active[#active+1]=site end end
+            sites=active
+        end
+        if sites and #sites<=1 then
+            publish('count',tid,#sites)
+            if #sites==1 then publish('site_x',tid,sites[1].x);publish('site_z',tid,sites[1].z)end
+            site_revision=site_revision+1;publish('layout_revision',0,site_revision)
+        else
+            publish('layout_error',0,tid)
+            print(('airfield map data tile %d unavailable: %s'):format(tid,tostring(why or 'multiple unaddressable fields')))
+        end
+    end
     function P.tick()
         if not sync_session() then return end
+        if not restored then
+            restored=true
+            for _,record in ipairs(W.vehicles() or {})do
+                local v=vehicle(record.id)
+                if v and human(v) and air(v) and gi(v,'VEHICLE_ATTACHED_TO')==0 and gi(v,'VEHICLE_DOCK_VEHICLE')==0 then
+                    local target=gi(v,'VEHICLE_DOCK_TILE')
+                    local state=dock(v)
+                    if target>0 and (state==field('DOCK_QUEUED') or state==field('DOCK_DOCKING') or state==field('DOCK_TAXI'))then
+                        local t=tile(target)
+                        if t and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM')then landing_status(record.id,target,state==field('DOCK_QUEUED') and 2 or 4)end
+                    elseif state==field('DOCK_UNDOCKED')then
+                        local wp=ref(v,'VEHICLE_WAYPOINTS',0)
+                        if wp and gi(wp,'WAYPOINT_TYPE')==field('WAYPOINT_BARGE_LOAD_TILE')then
+                            local result=land(v,gi(wp,'WAYPOINT_PARAM'),true)
+                            if result==0 then move(wp);v:waypoints_sync()end
+                        end
+                    end
+                end
+            end
+        end
+        if cc2.messages.poll then
+            for _,message in ipairs(cc2.messages.poll() or {})do
+                if message.topic=='loadout'then loadout(message)
+                elseif message.topic=='site_request'then request_sites(message.subject)end
+            end
+        end
+        discover_site()
         if now%8==0 then for _,vid in ipairs(sorted_keys(pending)) do
             local v,t=vehicle(vid),tile(pending[vid])
             if not v or not human(v) or not air(v) or dock(v)~=field('DOCK_UNDOCKED') or not t or gi(t,'TILE_TEAM')~=gi(v,'VEHICLE_TEAM') then pending[vid]=nil
             else local i=island(t);if i then
                 if count(i,'ISLAND_AIRFIELDS')==0 then pending[vid]=nil;publish('request_result',vid,0)
-                elseif do_land(v,i,true) then pending[vid]=nil;publish('request_result',vid,1) end
+                elseif do_land(v,i,true,pending[vid]) then pending[vid]=nil;publish('request_result',vid,1) end
             end end
         end end
         if now%64==1 then for _,t in ipairs(W.tiles() or {}) do if t.airfields_known then publish('count',t.id,t.airfields) end end end

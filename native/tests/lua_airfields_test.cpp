@@ -44,23 +44,23 @@ std::uint64_t coreEpoch=19;
 std::uint64_t CoreGeneration(){return coreEpoch;}
 void Require(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
 void CheckOwnedMapKnowledge(const fs::path& root) {
-    for(const char* screen:{"screen_holomap.lua.patch","screen_vehicle_control.lua.patch"}) {
-        std::ifstream input(root/"lua"/screen);std::string patch((std::istreambuf_iterator<char>(input)),{}),code;
-        for(const char* name:{"mm_airfield_count","mm_is_marked_airfield"}) {
-            auto start=patch.find(std::string("+function ")+name+"(");
-            auto end=patch.find("\n+end",start);Require(start!=std::string::npos&&end!=std::string::npos,"Missing owned screen helper");
-            for(std::size_t i=start;i<end+5;++i)if(patch[i]!='+'||!(i==start||patch[i-1]=='\n'))code+=patch[i];
-            code+='\n';
-        }
-        std::ifstream fixture(root/"native/tests/owned_map_knowledge.lua");
-        std::string checks((std::istreambuf_iterator<char>(fixture)),{});
-        Require(!checks.empty(),"Missing owned map knowledge checks");code+=checks;
-        lua_State* L=luaL_newstate();Require(L!=nullptr,"Map fixture VM unavailable");luaL_openlibs(L);
-        int rc=luaL_loadbuffer(L,code.data(),code.size(),screen);if(rc==LUA_OK)rc=lua_pcall(L,0,0,0);
-        std::string error=rc==LUA_OK?"":lua_tostring(L,-1);lua_close(L);
-        if(rc!=LUA_OK)throw std::runtime_error(std::string(screen)+": "+error);
+    std::ifstream input(root/"content/cc2x/ui/ui_common.lua");
+    std::string helper((std::istreambuf_iterator<char>(input)),{}),code;
+    for(const char* name:{"mm_airfield_count","mm_is_marked_airfield"}) {
+        auto start=helper.find(std::string("function ")+name+"(");
+        auto end=helper.find("\nend",start);
+        Require(start!=std::string::npos&&end!=std::string::npos,"Missing owned screen helper");
+        code+=helper.substr(start,end+4-start)+"\n";
     }
+    std::ifstream fixture(root/"native/tests/owned_map_knowledge.lua");
+    std::string checks((std::istreambuf_iterator<char>(fixture)),{});
+    Require(!checks.empty(),"Missing owned map knowledge checks");code+=checks;
+    lua_State* L=luaL_newstate();Require(L!=nullptr,"Map fixture VM unavailable");luaL_openlibs(L);
+    int rc=luaL_loadbuffer(L,code.data(),code.size(),"owned_ui");if(rc==LUA_OK)rc=lua_pcall(L,0,0,0);
+    std::string error=rc==LUA_OK?"":lua_tostring(L,-1);lua_close(L);
+    if(rc!=LUA_OK)throw std::runtime_error("owned_ui: "+error);
 }
+
 void Log(const char*,int,const char* format,...){char text[4096];va_list args;va_start(args,format);vsnprintf(text,sizeof(text),format,args);va_end(args);logs.emplace_back(text);}
 void TickRegister(void(*)(void*,void*),void*){}
 void SessionRegister(void(*)(void*,int,void*),void*){}
@@ -140,7 +140,9 @@ int Raycast(const double* from,const double* direction,double distance,int,cc2x_
     hit->distance=from[1]-height;return 1;}
 void Gear(void*,int){}void Brakes(void*,float,float){}
 void Sync(void*){++publications;}
-int Landing(void* object,void* vehicle){auto* v=V(vehicle);if(object!=&island||!v)return 0;v->dock=CC2X_DOCK_QUEUED;af.landing.push_back(v->id);return 1;}
+int Landing(void* object,void* vehicle){auto* v=V(vehicle);if(object!=&island||!v)return 0;
+    v->dock=CC2X_DOCK_QUEUED;v->dockTile=static_cast<int>(tile.id);v->dockAirfield=0;
+    af.landing.push_back(v->id);return 1;}
 void* TileAt(double,double){return &tile;}
 void Transform(const void*,const double* local,double* world){
     const double c=std::cos(af.yaw),s=std::sin(af.yaw);
@@ -248,6 +250,55 @@ void CheckObliqueRunwayEntry(Host& host) {
     Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED&&af.landing.empty(),"Far queued arrival did not remain cancellable");
     host.Session(&server,false);Reset();host.Session(&server,true);Step(host);
 }
+void CheckLandingReload(Host& host) {
+    host.Session(&server,false);Reset(true,3);host.Session(&server,true);Step(host);
+    for(std::size_t i=0;i<vehicles.size();++i){
+        vehicles[i].body.pos[2]+=(static_cast<double>(i)-1)*400;
+        vehicles[i].waypoints={{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};DispatchOrder(host,i);
+    }
+    Step(host,20);
+    for(const auto& v:vehicles)Require(v.dockTile==7&&v.dockAirfield==0,
+        "Active landing erased the native saveable destination");
+    // Real saves contain native vehicle fields and airfield lists, not the
+    // Lua flight table. Rebuild the session from only those engine values.
+    auto savedVehicles=vehicles;auto savedAf=af;
+    savedVehicles[0].dockTile=0;savedVehicles[0].dockAirfield=-1; // existing beta-3 save; reservation identifies target
+    savedVehicles[1].dock=CC2X_DOCK_QUEUED;
+    savedAf.landing.erase(std::remove(savedAf.landing.begin(),savedAf.landing.end(),savedVehicles[1].id),savedAf.landing.end());
+    savedAf.hangars.erase(savedAf.hangars.begin()+1);savedAf.hangars.push_back(0);
+    host.Session(&server,false);vehicles=savedVehicles;af=savedAf;
+    host.Session(&server,true);Step(host,40);
+    for(const auto& v:vehicles)Require(std::count(af.hangars.begin(),af.hangars.end(),v.id)==1,
+        "One of three saved arrivals lost its hangar/queue recovery");
+    for(int i=0;i<36000&&std::any_of(vehicles.begin(),vehicles.end(),[](const Vehicle& v){return v.dock!=CC2X_DOCK_DOCKED;});++i)Step(host);
+    for(const auto& v:vehicles)Require(v.dock==CC2X_DOCK_DOCKED&&v.dockTile==7&&v.dockAirfield==0,
+        "Three saved arrivals did not all finish at the airfield");
+    host.Session(&server,false);Reset(true);host.Session(&server,true);Step(host);
+    vehicles[0].dock=CC2X_DOCK_DOCKING;int writesBefore=bodyWrites;Step(host,40);
+    Require(vehicles[0].dockTile==0&&bodyWrites==writesBefore,
+        "Nearby aircraft with no target/reservation was adopted by proximity");
+    vehicles[0].dock=CC2X_DOCK_QUEUED;vehicles[0].dockTile=7;vehicles[0].dockAirfield=0;
+    host.WorldEvent("waypoints",vehicles[0].id);
+    Require(vehicles[0].dock==CC2X_DOCK_QUEUED,"Unattributed empty event canceled an arrival");
+    DispatchOrder(host,0);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED&&vehicles[0].dockTile==0,
+        "Explicit empty route failed to cancel a saved orphan queue entry");
+    // Deferred commands must survive even when the island was never streamed.
+    host.Session(&server,false);Reset(true);tile.loaded=false;host.Session(&server,true);Step(host);Order(host);
+    Require(vehicles[0].waypoints.size()==1&&vehicles[0].waypoints[0].type==CC2X_WAYPOINT_BARGE_LOAD_TILE,
+        "Deferred landing was converted into an ordinary, unresumable move");
+    savedVehicles=vehicles;savedAf=af;
+    host.Session(&server,false);vehicles=savedVehicles;af=savedAf;host.Session(&server,true);Step(host,16);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED,"Deferred reload invented a streamed island");
+    tile.loaded=true;Step(host,16);
+    Require(vehicles[0].dockTile==7&&vehicles[0].dock!=CC2X_DOCK_UNDOCKED,
+        "Saved deferred landing did not resume when the island streamed");
+    Order(host,CC2X_WAYPOINT_MOVE,0);Step(host,40);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED&&vehicles[0].dockTile==0,
+        "Canceled restored landing resurrected");
+    host.Session(&server,false);Reset();host.Session(&server,true);Step(host);
+    std::cout<<"PASS three-aircraft save-field round trip, missing queue repair, all arrivals parked, deferred reload/stream and cancellation (synthetic engine, not native serialization)\n";
+}
 }
 int main(int argc,char** argv){try{
     Require(argc==2,"Expected project path");project=fs::absolute(argv[1]).wstring();
@@ -264,6 +315,7 @@ int main(int argc,char** argv){try{
     Require(host.WorldEvent("island_spawn",7,1,0,1,true)==1,"AI garrison changed");
     host.Session(&server,true);Step(host);Require(host.Stats().modules==1,"Lua module did not load");
     CheckObliqueRunwayEntry(host);
+    CheckLandingReload(host);
     vehicles[0].waypoints={{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};host.WorldEvent("waypoints",vehicles[0].id);
     Require(vehicles[0].dock==0&&vehicles[0].waypoints[0].type==CC2X_WAYPOINT_MOVE,"Unattributed command was accepted");
     // Deferred order replaced before the island loads.

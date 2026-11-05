@@ -41,7 +41,7 @@ if __name__ == '__main__':
         raise ValueError('Missing SDK fixture objects')
     inputs = [*sorted((ROOT / 'content/bridge').rglob('*.lua')), ROOT / 'content/bridge.json',
               *sorted((ROOT / 'lua').glob('*.lua.patch')), ROOT / 'native/tests/owned_map_knowledge.lua',
-              ROOT / 'native/tests/lua_airfields_test.cpp', Path(__file__).resolve()]
+              ROOT / 'native/tests/lua_airfields_test.cpp', ROOT / 'content/cc2x/ui/ui_common.lua', Path(__file__).resolve()]
     hashes = {p.relative_to(ROOT).as_posix(): sha(p) for p in inputs}
     with tempfile.TemporaryDirectory(prefix='cc2x-airfields-lua-') as temp:
         output = Path(temp) / 'airfields_lua_test.exe'

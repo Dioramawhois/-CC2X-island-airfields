@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.2.0-client-beta.5 (2026-11-06)
+
+- Open the selected aircraft loadout directly from its bay. Reuse the carrier
+  chassis/hardpoint widget through an owned input adapter and choose equipment
+  by pictures; retain a separate bottom launch button.
+- Remove the landing menu and the intermediate loadout-action step. Landing
+  remains an explicit aircraft-to-airfield gesture on the control map.
+- Bind the editor and launch destination to the exact aircraft identity.
+- Preserve native landing targets through save/reload; restore missing queue
+  entries and legacy active arrivals from their saved hangar reservations.
+- Retain explicit deferred orders until native docking accepts them; restore
+  them on a new session and preserve explicit cancellation.
+- Reconstruct map/holomap arrival links, QUEUE/HOLD/LAND/TAXI statuses and counts
+  from host state after reload. Add three-arrival and missing-queue regressions.
+- Show four numbered aircraft cards with native chassis symbols. Fit graphical
+  equipment choices to small monitors, wrap names, mark fitted weapons, omit
+  carrier-hidden choices and preserve hierarchical Back navigation.
+- Separate airfield icons from island hubs, using real facility positions.
+- Match hub marker size, black edge, team colour and hover highlighting.
+- Retain observed facility positions across streaming. The optional CPU preview
+  currently refuses unavailable tile definitions; never-streamed markers can
+  still require an approach and are a documented limitation.
+- Replace automatic ground/first-waypoint landing with explicit airfield actions.
+- Add exactly four hangar bays, aircraft selection and a launch destination picker.
+- Add free compatible hardpoint replacement/clearing with full new attachments.
+  Use the optional shared CC2X equipment API; inventory accounting is deferred.
+- Preserve original map order call sites and the corrected 2.1.2 flight circuit.
+  Stock and Revolution 1.6-19/1.6-20 remain separate, hash-pinned integrations.
+- Add real-Lua UI/input and policy regression fixtures. The owner confirmed
+  three-arrival save/reload and equipment changes, then approved the graphical
+  update after an ordinary-host trial. Remote/dedicated support is unverified.
+
 ## 2.1.2-client-beta.1 (2026-11-05)
 
 - Guide an oblique fixed-wing arrival toward the outer runway approach circuit

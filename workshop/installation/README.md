@@ -1,11 +1,11 @@
-# Installation - Island Airfields 2.1
+# Installation - Island Airfields 2.2
 
 Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19/1.6-20.
 For Revolution, subscribe to its [original Workshop item](https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110)
 and enable **both Revolution and Island Airfields**. No combined repack or file
 replacement is required. The addon contains no Revolution files.
 
-Windows / reviewed CC2 1.5.18-r2 client. Requires **CC2X SDK 0.8.1 client beta 1**.
+Windows / reviewed CC2 1.5.18-r2 client. Requires **CC2X SDK 0.9.0-dev preview**.
 
 ![Subscribe to both items, install the SDK DLL with the game closed, enable the mod and restart.](images/03-installation-flow.png)
 
@@ -26,7 +26,7 @@ steamapps/workshop/content/1489630/3833014670/content
 
 ![Explorer showing dinput8.dll in the SDK Workshop content folder.](images/01-sdk-file.png)
 
-Copy **dinput8.dll**. You can also [download that file from the exact SDK release](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/download/0.8.1-client-beta.1/dinput8.dll).
+Copy **dinput8.dll**. You can also [download that file from the exact SDK release](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/download/0.9.0-dev/dinput8.dll).
 
 ## 3. Open the game folder
 
@@ -42,7 +42,7 @@ Carrier Command 2/
 ![Explorer showing dinput8.dll beside carrier_command.exe.](images/02-game-folder.png)
 
 The screenshots illustrate file names and placement; Windows language, dates and
-your Steam library location may differ. Use the SDK 0.8.1 download linked above.
+your Steam library location may differ. Use the SDK 0.9.0-dev download linked above.
 Keep a backup of an older identified CC2X runtime; check compatibility before
 replacing a different loader.
 
@@ -59,7 +59,7 @@ The new mod contains Lua/content. It does not need a separate
 installed Island Airfields DLL out of its loading location. Keep the shared SDK
 and unrelated plugins. Enable one Island Airfields copy at a time.
 
-ModLoader must explicitly support this exact SDK 0.8.1 runtime for automatic
+ModLoader must explicitly support this exact SDK 0.9.0-dev runtime for automatic
 installation. Until your build supports it, use the manual route above. The
 reviewed stock/Revolution screens use checked in-memory edits. Other screen
 versions are skipped and logged; they require a reviewed compatibility profile.
@@ -67,9 +67,9 @@ versions are skipped and logged; they require a reviewed compatibility profile.
 ## First check
 
 1. Start single-player or an ordinary-host session. Custom with several starting islands is convenient.
-2. Owned airfields are marked in team colour immediately.
-3. Give an airborne aircraft one waypoint near an owned airfield to land.
-4. Give a parked aircraft a new waypoint away from the island to launch.
+2. Airfield markers use actual facility positions when available; never-streamed islands may still need an approach.
+3. Drag an airborne aircraft onto the explicit airfield icon on the control map to land.
+4. Click the airfield, then its parked aircraft. Edit hardpoints on its carrier-style picture; use Launch at the bottom and select a map destination.
 5. A replacement order before touchdown cancels the landing.
 
 Planes and helicopters are enabled by default. Include `cc2x.log` from the game

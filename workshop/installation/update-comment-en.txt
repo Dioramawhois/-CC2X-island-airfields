@@ -1,15 +1,35 @@
-Island Airfields 2.1.2 - improved runway entry
+[h1]Island Airfields 2.2 - Graphical Airfield Loadouts[/h1]
 
-Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together. No Revolution files or complete game screens are included. Carrier deck status excludes island landings.
+[b]Update the CC2X runtime too.[/b] This version requires the matching [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670]CC2X SDK 0.9.0-dev preview[/url]. SDK 0.8.1 cannot replace aircraft equipment. With the game closed, copy the updated SDK's content/dinput8.dll beside carrier_command.exe, keeping a backup of an identified older loader. Workshop downloads do not replace manually copied DLLs.
 
-Fixed-wing arrivals now join the outer runway approach circuit first. The owner confirmed the corrected oblique approach in an ordinary-host game. Native queued guidance beyond six kilometres and orders waiting for runway geometry to stream retain their existing behavior.
+[h2]Open an airfield, choose the aircraft, edit its picture[/h2]
+[olist]
+[*]Click the separate airfield icon on the map. The island hub keeps its production actions.
+[*]The window contains exactly [b]four numbered hangar bays[/b]. Click a parked aircraft to open its loadout immediately, without an extra action-selection menu.
+[*]The editor uses the [b]same graphical chassis and hardpoint widget as the carrier[/b]: aircraft silhouette, actual hardpoint locations, installed equipment symbols and supply indicators.
+[*]Click a hardpoint on the picture. Choose compatible equipment by its icon; the focused option has a readable name and fitted equipment is marked. Previous/next pages keep choices usable on small monitors.
+[*]Use the separate [b]Launch[/b] button at the bottom, then click the destination on the map. The order stays bound to that aircraft; a replacement in the same bay does not inherit it.
+[/olist]
+Empty or busy bays cannot launch or create aircraft. Back returns from equipment choices to the aircraft picture, then to the airfield. Taller screens keep the picture above equipment choices; small screens use a dedicated picker. Mouse and directional/action/back controls are supported.
 
-Requires CC2X SDK 0.8.1 client beta 1:
-https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670
+[h2]Free refitting in this update[/h2]
+Compatible equipment can be replaced or cleared. Newly fitted attachments start with full ammunition. [b]Refitting is currently free[/b]: it takes no equipment, ammunition or resources from islands, warehouses, carriers or barges. Resource accounting is a separate future task. This does not create aircraft or change their chassis. Pending changes block another change or launch until the result is known.
 
-With the game closed, copy the SDK's dinput8.dll beside carrier_command.exe. Enable Island Airfields in Mods, then restart. Take an older manually installed Island Airfields DLL out of its loading location, if you installed one.
+[h2]Landing belongs on the map[/h2]
+The landing button and aircraft landing list have been removed from the airfield window. [b]Drag an airborne aircraft onto the explicit airfield icon on the vehicle-control map[/b] to issue landing. Ordinary clicks and waypoints on land or near the runway remain movement orders; they no longer become landing just because they are close to an island.
 
-Screenshots and installation diagram:
-https://github.com/Dioramawhois/-CC2X-island-airfields/blob/main/workshop/installation/README.md
+Airfield markers are separate from island hubs and use the same team-colour, black-edge and hover style. They use actual facility coordinates when available. The hub continues to open production.
 
-Twelve synthetic full-flight cases and 18 Python checks pass. The approach correction also received the owner check above; complete touchdown/service/relaunch acceptance for this exact release, remote-client and dedicated acceptance remain separate and unverified.
+[h2]See the queue and keep orders after loading[/h2]
+Assigned aircraft have a dashed link to the airfield and QUEUE, HOLD, LAND or TAXI status. The marker and airfield window show arrival counts; hovering an assigned aircraft names its destination. Waiting for the shared runway is distinct from having no landing order.
+
+Landing targets remain in the game's saved docking data. Deferred explicit orders are retained until the island can accept them. After loading, the host reconstructs arrivals and repairs missing queue entries. Older active arrivals can recover from an existing saved hangar reservation. A new ordinary route or route cancellation clears the task. If an old save lost both target and reservation, the destination is not guessed.
+
+[h2]Compatibility and current limits[/h2]
+Separate addon for stock CC2 and Revolution 1.6-19/1.6-20. With Revolution, enable original Revolution and Island Airfields together. No Revolution files, complete game screens or private gameplay DLL are bundled. Unknown screen profiles are skipped.
+
+The owner tested ordinary Windows host gameplay and approved the graphical update for release. Three-arrival save/reload and equipment changes were explicitly confirmed. Offline UI, flight, queue and packaging regressions are separate supporting checks.
+
+[b]Known limit:[/b] a never-streamed island may still need an approach before its exact marker is available; the experimental distant-position preview currently refuses unavailable tile definitions. This update does not claim to fix every far-distance native approach. Remote clients and dedicated servers remain unverified; remote equipment input is disabled.
+
+[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.0-client-beta.5]Release files and installation[/url]
