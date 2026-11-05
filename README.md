@@ -1,6 +1,6 @@
 # Island Airfields
 
-**2.2.0-client-beta.2** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
+**2.2.0-client-beta.3** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
@@ -8,7 +8,8 @@ is retained.
 The published [2.1.2-client-beta.1 download](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1)
 remains the accepted runway-approach release. Version 2.2 has not been published.
 
-In this candidate, click the separate airfield icon to select one of four bays,
+In this candidate, click the separate airfield icon for a numbered four-bay overview,
+selected-aircraft status and separate landing/loadout/launch actions. Select a bay,
 change compatible weapons for free or launch the selected aircraft toward a
 chosen point. Use **Land aircraft** or drag an aircraft onto the airfield icon
 for landing. Ordinary ground waypoints stay movement orders. Inventory accounting

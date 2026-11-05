@@ -1,7 +1,11 @@
 # Changelog
 
-## 2.2.0-client-beta.2 (unreleased candidate)
+## 2.2.0-client-beta.3 (unreleased candidate)
 
+- Replace the flat menu with a numbered two-by-two hangar overview, selected
+  aircraft status and separate loadout, launch and landing actions.
+- Fit hardpoint/weapon pages to small monitors, wrap long names, mark fitted
+  weapons, omit carrier-hidden choices and preserve hierarchical Back navigation.
 - Separate airfield icons from island hubs, using real facility positions.
 - Match hub marker size, black edge, team colour and hover highlighting.
 - Discover distant host-side positions using the optional SDK CPU tile preview;

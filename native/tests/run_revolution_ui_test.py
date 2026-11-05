@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -43,7 +44,10 @@ if __name__ == '__main__':
                         *map(str,objects),'-o',str(output)],check=True)
         subprocess.run([str(output),str(inputs[0]),str(inputs[4]),str(inputs[1])],check=True,timeout=15)
         subprocess.run([str(output),str(inputs[0]),str(inputs[4]),str(inputs[5])],check=True,timeout=15)
-        subprocess.run([str(output),str(inputs[6]),str(inputs[0]),str(inputs[7])],check=True,timeout=15)
+        previews=ROOT/'build/revolution-audit/menu-previews'
+        previews.mkdir(parents=True,exist_ok=True)
+        subprocess.run([str(output),str(inputs[6]),str(inputs[0]),str(inputs[7])],check=True,timeout=15,
+                       env=dict(os.environ,IAF_UI_CAPTURE_DIR=str(previews)))
         subprocess.run([str(output),str(inputs[8]),str(inputs[4]),str(inputs[9])],check=True,timeout=15)
         executable = sha(output)
     if hashes != {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}:

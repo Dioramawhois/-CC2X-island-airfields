@@ -12,11 +12,28 @@ The island hub retains its original icon and production actions. The airfield
 hit area has a fixed seven-pixel radius; ordinary ground points remain movement
 orders at every map scale.
 
-Click the airfield icon to open exactly four hangar bays. Select an occupied bay,
-choose **Loadout (free)** to edit compatible hardpoints, or **Launch selected
-aircraft** and then click a destination on the map. Empty bays cannot launch or
-create aircraft. All hardpoints and attachment choices are paged when necessary.
-Mouse and directional/action/back controls share the same actions.
+Click the airfield icon to open a two-by-two overview of exactly four numbered
+hangar bays. Each card identifies its aircraft and highlights the selected bay.
+On taller displays, cards also show vehicle IDs and parked/busy state; the
+selected aircraft has hull, fuel and ammunition percentages below the cards.
+On 128x128 monitors the overview uses compact cards with the stock aircraft
+abbreviations, the same four bays and separate actions. Narrow loadout headers
+retain the bay number and aircraft identity. Unloaded fields show unavailable
+live data explicitly.
+
+Choose **Loadout (free)** to edit compatible hardpoints, or **Launch** and then
+click a destination on the map. **Land aircraft...** has its own action below
+these controls. Empty bays cannot launch or create aircraft. The white title
+bar, chassis/attachment symbols and status hierarchy follow carrier conventions;
+this is an owned airfield menu, not the carrier's inventory/chassis screen.
+
+Loadout pages keep the selected bay and aircraft visible, label every hardpoint
+and current attachment, and mark the fitted weapon. Carrier-hidden attachment
+options are excluded. Long option names wrap over two lines within their rows.
+Page capacity adapts to monitor height; numbered pages have separate previous
+and next buttons. **Back** returns from weapon choices to hardpoints, then to
+the hangar. **X** closes the menu. Mouse and directional/action/back controls
+share the same actions. Pending changes still block another change or launch.
 
 To land, choose **Land aircraft** and an airborne aircraft. On the vehicle-control
 map, dragging an aircraft onto the airfield icon also issues an explicit landing
@@ -94,6 +111,9 @@ artifact, at x1 time. Retain a save backup and the existing published installati
 2. Place and drag ordinary aircraft/group waypoints across the island. None should
    become a landing order. Click and drag explicit landing actions separately.
 3. Confirm exactly four bays, occupied/empty state and selection of a specific bay.
+   Inspect 128x128, 256x128 and 256x256 monitors: labels must fit their controls, selection
+   must remain clear, and the last hardpoint/weapon page must be reachable.
+   Verify nested Back, the fitted option marker and keyboard/gamepad navigation.
 4. Replace a weapon, clear it and refit it. Confirm compatibility choices, full
    ammunition, unchanged inventories and correct attachment visuals/collision.
 5. Launch that selected aircraft to a chosen destination and confirm the flight
