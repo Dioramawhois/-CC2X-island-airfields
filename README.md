@@ -1,20 +1,29 @@
 # Island Airfields
 
-**2.1.2-client-beta.1** is a separate Lua addon for stock Carrier Command 2 and
-**Revolution 1.6-19 and 1.6-20**. It requires **CC2X SDK 0.8.1-client-beta.1**. Workshop
+**2.2.0-client-beta.1** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
+**Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
-Download [2.1.2-client-beta.1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1).
-Fixed-wing arrivals now join the outer runway approach circuit first. The owner
-confirmed the corrected oblique approach in an ordinary-host game.
-See [Runway approach](docs/RUNWAY_APPROACH.md) for the remaining boundaries.
+The published [2.1.2-client-beta.1 download](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1)
+remains the accepted runway-approach release. Version 2.2 has not been published.
 
-Aircraft land on owned island airfields, receive hangar service and launch on a
-new order. The host runs the flight policy through public SDK APIs. The mod has
-no private gameplay DLL and contains no Revolution files or complete game screens.
+In this candidate, click the separate airfield icon to select one of four bays,
+change compatible weapons for free or launch the selected aircraft toward a
+chosen point. Use **Land aircraft** or drag an aircraft onto the airfield icon
+for landing. Ordinary ground waypoints stay movement orders. Inventory accounting
+is a separate future task; newly fitted attachments start full.
+
+The host runs the flight policy through public SDK APIs. The mod has no private
+gameplay DLL and contains no Revolution files or complete game screens.
+[UI contract, current limits and acceptance steps](docs/AIRFIELD_UI_2_2.md).
 
 ## Install
+
+This development candidate is prepared for isolated testing. It needs its exact
+matching equipment SDK binary; SDK 0.8.1 provides no weapon replacement primitive.
+Do not replace the accepted installation to test it without preserving a backup.
+
 
 Subscribe to Island Airfields and [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
 With the game closed, copy the SDK's `content/dinput8.dll` beside
@@ -42,22 +51,21 @@ and other carriers' traffic. [Compatibility design and evidence](docs/REVOLUTION
 
 ## Validation scope
 
-The runway-entry change passes 12 complete synthetic flight cases through the
-actual SDK Host and real Lua. The owner also confirmed the corrected oblique
-approach in a fresh ordinary-host game. These are separate validation levels;
-see [Runway approach](docs/RUNWAY_APPROACH.md).
+The candidate passes owned real-Lua UI/callback and loadout-policy fixtures,
+actual-SDK synthetic flight regressions, syntax-only screen delivery for stock
+and both reviewed Revolution versions, and packaging safety checks. The SDK's
+native equipment path also passes static checks against the exact executable.
+These are offline checks. New icons, loadout construction/clear/refill, save/load
+and launch need fresh ordinary-host acceptance. UI screenshots or direct owner
+confirmation and gameplay confirmation are required before publication.
 
-The owner accepted ordinary-host airfield behavior in the earlier integration
-prototype and reported its carrier-status defect. The fix has real-Lua synthetic
-coverage. The separate addon passes actual-SDK source transformation and syntax
-checks for stock/Revolution, plus host-policy and UI fixtures. These checks do
-not certify every terrain/physics case, a second remote client, dedicated
-servers or arbitrary screen modifications. Full touchdown/service/relaunch
-acceptance for this exact release remains separate from the confirmed approach.
+Runway geometry appears after a valid snapshot has been observed; no hub-based
+position is invented for unstreamed airfields. Remote equipment commands are
+disabled. Remote multiplayer and dedicated servers remain unverified.
 
 ## Developer build
 
-Use an external verified SDK 0.8.1, pinned Zig 0.15.2 and real Lua 5.3 syntax checker.
+Use the matching verified development equipment SDK, pinned Zig 0.15.2 and real Lua 5.3 syntax checker.
 
 ```text
 python package_lua.py --sdk SDK --game GAME --luac LUAC --output NEW-ABSOLUTE-DIRECTORY

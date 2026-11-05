@@ -1,16 +1,21 @@
 {
   "sdk": "CC2X",
-  "tested_version": "0.8.1-client-beta.1",
+  "tested_version": "0.9.0-dev",
   "api_version": 8,
   "default_directory": "../cc2x",
   "override_argument": "--sdk",
   "override_environment": "CC2X_SDK_DIR",
-  "validation": "Separate-addon offline validation; owner host acceptance for the earlier local prototype. New delivery requires its own manual check. Remote and dedicated unverified.",
+  "validation": "Offline candidate validation only. Exact equipment runtime is required for loadout changes; fresh UI, ordinary-host gameplay, remote and dedicated acceptance pending.",
   "required_extensions": [
     {
       "name": "cc2x.session",
       "version": 1,
       "query_export": "cc2x_query_session_v1"
+    },
+    {
+      "name": "cc2x.equipment",
+      "version": 1,
+      "query_export": "cc2x_query_equipment_v1"
     }
   ],
   "lua_api_version": 2,
@@ -18,6 +23,9 @@
     "lua-mod-api-v2",
     "waypoint-origin-v1",
     "screen-extensions-v1",
-    "screen-source-edits-v1"
-  ]
+    "screen-source-edits-v1",
+    "vehicle-equipment-v1"
+  ],
+  "tested_source_commit": "9b07f29",
+  "tested_runtime_sha256": "16ee1e6e99e52489c12261ea60fe7c55f7974035c855a5be2fdfcdc72c17dc67"
 }

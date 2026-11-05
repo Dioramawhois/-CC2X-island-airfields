@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.2.0-client-beta.1 (unreleased candidate)
+
+- Separate airfield icons from island hubs, using real runway positions.
+- Replace automatic ground/first-waypoint landing with explicit airfield actions.
+- Add exactly four hangar bays, aircraft selection and a launch destination picker.
+- Add free compatible hardpoint replacement/clearing with full new attachments.
+  Use the optional shared CC2X equipment API; inventory accounting is deferred.
+- Preserve original map order call sites and the corrected 2.1.2 flight circuit.
+  Stock and Revolution 1.6-19/1.6-20 remain separate, hash-pinned integrations.
+- Add real-Lua UI/input and policy regression fixtures. This candidate requires
+  fresh UI and ordinary-host gameplay acceptance before publication.
+
 ## 2.1.2-client-beta.1 (2026-11-05)
 
 - Guide an oblique fixed-wing arrival toward the outer runway approach circuit

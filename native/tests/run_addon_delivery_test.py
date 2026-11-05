@@ -39,11 +39,7 @@ def stock_expected(original, screen, generator, owned_patch):
     lines = generator.canonical(original).decode().split('\n')
     delta = (ROOT/'lua'/(screen+'.patch')).read_text().splitlines()
     modified = '\n'.join(owned_patch.apply_patch(lines, delta, screen))
-    start = modified.index('-- [my_mod] Best-effort airbase anchor')
-    anchor = ('function update(screen_w, screen_h, ticks)' if screen == 'screen_holomap.lua'
-              else 'function input_event(event, action)')
-    end = modified.index(anchor, start)
-    return (modified[:start]+modified[end:]).encode()
+    return modified.encode()
 
 
 def main():

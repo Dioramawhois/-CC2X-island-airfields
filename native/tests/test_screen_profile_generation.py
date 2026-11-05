@@ -123,40 +123,34 @@ class ScreenProfileGenerationTest(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 self.generator.unique_profiles([first, different])
 
-    def test_shipped_profiles_retain_previous_reviews_and_stock_and_add_new_control(self):
-        # Fingerprints describe the previously shipped owned profile records,
-        # including every byte edit, rather than copying third-party screens.
-        previous = {
+    def test_shipped_profiles_retain_reviewed_sources_and_only_insert_map_hooks(self):
+        # Retain every reviewed source identity. All map order call sites now
+        # remain original; only owned drawing hooks are inserted in the source.
+        expected = {
             'scripts/screen_holomap.lua': {
-                '22b31c3892623275e3ea4acfc1b390eac764a7de0a804a6eba0accc9a9173042':
-                    '6ed8e0fb8ae55d055327be28af5fee149a69f0ffbc97e381d36426b2b3a6ae3c',
-                'ed7f640a1fc877e4118a6b7df86760556762b587ff80206736b0540cc97f02e8':
-                    '970fe53f4e214bace085e5e7e4db88294c3240f00c30ae3fae81d61f8484778b',
-            },
+                '22b31c3892623275e3ea4acfc1b390eac764a7de0a804a6eba0accc9a9173042',
+                'ed7f640a1fc877e4118a6b7df86760556762b587ff80206736b0540cc97f02e8'},
             'scripts/screen_vehicle_control.lua': {
-                '5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854':
-                    'f0750b735b8527e1cf962521262f2ad6bc6cd85a8a32acddb62edd131d2736b2',
-                'dc5f291aaf304c4709dc9a931812f0d1b058834ddb5677dc87467a9c2ea71266':
-                    '6f0ee670c76662c97edaf3a97afdb40cde2db22760a1d9a5c8caefde08556409',
-            },
+                '5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854',
+                'dc5f291aaf304c4709dc9a931812f0d1b058834ddb5677dc87467a9c2ea71266',
+                'ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f'},
             'scripts/screen_propulsion.lua': {
-                '7382748796166450a599b711b33da8d6fea231de2e28fb413befc2b159509ba0':
-                    'c94877aa940de3af80fed264b737a5d10e556e6f916f1bdb18bc239369f9d600',
-                'd0cf3f7fa32fa990a0cd3bd1ed2bdd33ebc9eedff4af62869541999c4e997fb3':
-                    '1fdb88df46adadd00312e5aab2aa2e1f87ff0f4b3ec1eabff22f2a0524970dd5',
-            },
+                '7382748796166450a599b711b33da8d6fea231de2e28fb413befc2b159509ba0',
+                'd0cf3f7fa32fa990a0cd3bd1ed2bdd33ebc9eedff4af62869541999c4e997fb3'},
         }
         descriptor = json.loads((ROOT/'content/cc2x/screen_extensions.json').read_text(encoding='utf-8'))
         entries = {entry['screen']: entry for entry in descriptor['extensions']}
-        self.assertEqual(set(entries), set(previous))
-        for screen, expected in previous.items():
-            profiles = {item['sha256']: item for item in entries[screen]['profiles']}
-            self.assertEqual(len(profiles), len(entries[screen]['profiles']))
-            for digest, fingerprint in expected.items():
-                self.assertIn(digest, profiles)
-                canonical = json.dumps(profiles[digest], sort_keys=True,
-                                       separators=(',', ':'), ensure_ascii=False).encode()
-                self.assertEqual(sha(canonical), fingerprint)
+        self.assertEqual(set(entries), set(expected))
+        for screen, digests in expected.items():
+            profiles = entries[screen]['profiles']
+            self.assertEqual({p['sha256'] for p in profiles}, digests)
+            self.assertEqual(len(profiles), len(digests))
+            if screen != 'scripts/screen_propulsion.lua':
+                for profile in profiles:
+                    for edit in profile['edits']:
+                        self.assertEqual(edit['remove'], 0, 'original map behavior was replaced')
+                        self.assertNotIn('add_waypoint', edit['insert'])
+                        self.assertIn('mm_draw_', edit['insert'])
         old = '5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854'
         new = 'ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f'
         control = {item['sha256']: item for item in entries['scripts/screen_vehicle_control.lua']['profiles']}

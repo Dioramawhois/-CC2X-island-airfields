@@ -25,7 +25,10 @@ if __name__ == '__main__':
         raise ValueError('Use the verified SDK compiler')
     inputs = [ROOT/'content/cc2x/ui/ui_common.lua',
               ROOT/'native/tests/revolution_ui.lua', ROOT/'native/tests/revolution_ui_runner.c',
-              Path(__file__).resolve(), ROOT/'content/cc2x/ui/carrier_traffic.lua']
+              Path(__file__).resolve(), ROOT/'content/cc2x/ui/carrier_traffic.lua',
+              ROOT/'native/tests/airfield_ui_v2.lua', ROOT/'native/tests/airfield_callbacks_setup.lua',
+              ROOT/'native/tests/airfield_callbacks_check.lua', ROOT/'content/bridge/policy.lua',
+              ROOT/'native/tests/airfield_loadout_policy.lua']
     hashes = {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}
     objects = sorted((sdk/'build/unified/objects').glob('third_party_lua_*.obj'))
     if not objects:
@@ -39,6 +42,9 @@ if __name__ == '__main__':
                         '-I',str(sdk/'third_party/lua'),str(inputs[2]),
                         *map(str,objects),'-o',str(output)],check=True)
         subprocess.run([str(output),str(inputs[0]),str(inputs[4]),str(inputs[1])],check=True,timeout=15)
+        subprocess.run([str(output),str(inputs[0]),str(inputs[4]),str(inputs[5])],check=True,timeout=15)
+        subprocess.run([str(output),str(inputs[6]),str(inputs[0]),str(inputs[7])],check=True,timeout=15)
+        subprocess.run([str(output),str(inputs[8]),str(inputs[4]),str(inputs[9])],check=True,timeout=15)
         executable = sha(output)
     if hashes != {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}:
         raise ValueError('UI fixture inputs changed during validation')

@@ -36,6 +36,7 @@ class RecipeTest(unittest.TestCase):
         (self.project / 'content/cc2x/screen_extensions.json').write_text(json.dumps({
             'schema':2,'extensions':[{'screen':'scripts/example.lua','source':'cc2x/ui/owned.lua',
                 'profiles':[{'sha256':'a'*64,'edits':[{'offset':0,'remove':0,'insert':'owned()\n'}]}]}]}))
+        (self.project/'cc2x-sdk.json').write_text(json.dumps({'tested_runtime_sha256': 'b'*64}))
         self.module.ROOT = self.project
 
     def test_separate_addon_preserves_game_and_bundles_no_screen_source(self):
@@ -50,6 +51,11 @@ class RecipeTest(unittest.TestCase):
         cached.parent.mkdir(parents=True)
         cached.write_bytes(b'return 2\n')
         with self.assertRaisesRegex(ValueError, 'Whole screen caches'):
+            self.module.resources(self.game, read)
+
+    def test_missing_exact_equipment_runtime_pin_is_refused(self):
+        (self.project/'cc2x-sdk.json').write_text('{}')
+        with self.assertRaisesRegex(ValueError, 'exact equipment SDK'):
             self.module.resources(self.game, read)
 
     def test_missing_game_is_refused(self):

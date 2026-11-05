@@ -44,23 +44,23 @@ std::uint64_t coreEpoch=19;
 std::uint64_t CoreGeneration(){return coreEpoch;}
 void Require(bool ok,const char* text){if(!ok)throw std::runtime_error(text);}
 void CheckOwnedMapKnowledge(const fs::path& root) {
-    for(const char* screen:{"screen_holomap.lua.patch","screen_vehicle_control.lua.patch"}) {
-        std::ifstream input(root/"lua"/screen);std::string patch((std::istreambuf_iterator<char>(input)),{}),code;
-        for(const char* name:{"mm_airfield_count","mm_is_marked_airfield"}) {
-            auto start=patch.find(std::string("+function ")+name+"(");
-            auto end=patch.find("\n+end",start);Require(start!=std::string::npos&&end!=std::string::npos,"Missing owned screen helper");
-            for(std::size_t i=start;i<end+5;++i)if(patch[i]!='+'||!(i==start||patch[i-1]=='\n'))code+=patch[i];
-            code+='\n';
-        }
-        std::ifstream fixture(root/"native/tests/owned_map_knowledge.lua");
-        std::string checks((std::istreambuf_iterator<char>(fixture)),{});
-        Require(!checks.empty(),"Missing owned map knowledge checks");code+=checks;
-        lua_State* L=luaL_newstate();Require(L!=nullptr,"Map fixture VM unavailable");luaL_openlibs(L);
-        int rc=luaL_loadbuffer(L,code.data(),code.size(),screen);if(rc==LUA_OK)rc=lua_pcall(L,0,0,0);
-        std::string error=rc==LUA_OK?"":lua_tostring(L,-1);lua_close(L);
-        if(rc!=LUA_OK)throw std::runtime_error(std::string(screen)+": "+error);
+    std::ifstream input(root/"content/cc2x/ui/ui_common.lua");
+    std::string helper((std::istreambuf_iterator<char>(input)),{}),code;
+    for(const char* name:{"mm_airfield_count","mm_is_marked_airfield"}) {
+        auto start=helper.find(std::string("function ")+name+"(");
+        auto end=helper.find("\nend",start);
+        Require(start!=std::string::npos&&end!=std::string::npos,"Missing owned screen helper");
+        code+=helper.substr(start,end+4-start)+"\n";
     }
+    std::ifstream fixture(root/"native/tests/owned_map_knowledge.lua");
+    std::string checks((std::istreambuf_iterator<char>(fixture)),{});
+    Require(!checks.empty(),"Missing owned map knowledge checks");code+=checks;
+    lua_State* L=luaL_newstate();Require(L!=nullptr,"Map fixture VM unavailable");luaL_openlibs(L);
+    int rc=luaL_loadbuffer(L,code.data(),code.size(),"owned_ui");if(rc==LUA_OK)rc=lua_pcall(L,0,0,0);
+    std::string error=rc==LUA_OK?"":lua_tostring(L,-1);lua_close(L);
+    if(rc!=LUA_OK)throw std::runtime_error("owned_ui: "+error);
 }
+
 void Log(const char*,int,const char* format,...){char text[4096];va_list args;va_start(args,format);vsnprintf(text,sizeof(text),format,args);va_end(args);logs.emplace_back(text);}
 void TickRegister(void(*)(void*,void*),void*){}
 void SessionRegister(void(*)(void*,int,void*),void*){}

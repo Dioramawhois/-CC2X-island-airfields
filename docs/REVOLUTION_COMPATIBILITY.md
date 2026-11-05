@@ -1,7 +1,7 @@
 # Revolution compatibility: separate addon
 
-Island Airfields **2.1.x** is a separate package for the
-original **Revolution 1.6-19 or 1.6-20**, using **CC2X SDK 0.8.1-client-beta.1**.
+Island Airfields **2.2.0 candidate** is a separate package for the
+original **Revolution 1.6-19 or 1.6-20**, using the matching **CC2X equipment development runtime**.
 
 Enable both mods. Island Airfields does not include, replace or redistribute
 Revolution's files. The earlier private combined-package experiment is retired;
@@ -22,15 +22,10 @@ Installed and subscribed files are never written.
 
 Stock and both reviewed Revolution versions cover holomap, vehicle control and propulsion.
 The map edits preserve Revolution's own update/input callbacks, fog of war,
-coordinate transforms, patrols and support orders. Six individual/group waypoint
-call sites use the existing typed landing channel. Optional cached vehicle
-proxies are unwrapped only for the order operation.
-
-Aircraft landing orders are issued from the vehicle-control map. A new first
-waypoint or a drag that replaces the first waypoint can use the landing helper;
-later route points remain ordinary movement orders. Revolution's holomap
-provides carrier route editing and aircraft camera/airlift actions. Its carrier
-route reconstruction calls are preserved unchanged.
+coordinate transforms, patrols and support orders. Original waypoint call sites
+remain unchanged. The owned callback wrapper handles explicit airfield actions
+and delegates ordinary map input. Four-bay launch and free loadout are described
+in [the current UI contract](AIRFIELD_UI_2_2.md).
 
 The propulsion classifier follows stock carrier-parent semantics: arrivals,
 queue and taxi require this carrier's docking parent; launch and holding require

@@ -49,7 +49,9 @@ function M.new(cc2, settings)
         if current == 0 then return false end
         if current ~= generation then
             generation, pending, flights, locks, plans, plan_order = current, {}, {}, {}, {}, {}
-            publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 1)
+            publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 2)
+            publish('session', 0, current)
+            publish('equipment',0,cc2.equipment and cc2.equipment.available() and 1 or 0)
         end
         now = cc2.session.tick()
         return true
@@ -64,6 +66,7 @@ function M.new(cc2, settings)
         end
     end
     local function slot(af, vid)
+        if count(af, 'AIRFIELD_HANGARS') ~= 4 then return -1 end
         local k = list_find(af, 'AIRFIELD_HANGARS', vid)
         if k < 0 then k = list_find(af, 'AIRFIELD_HANGARS', 0); if k >= 0 then si(af, 'AIRFIELD_HANGARS', vid, k) end end
         return k
@@ -427,8 +430,31 @@ function M.new(cc2, settings)
             end
         end end
     end
+    local function loadout(message)
+        local vid,payload=message.subject,message.value
+        if type(vid)~='number' or vid%1~=0 or vid<=0 or vid>4294967295 or type(payload)~='number' or
+           payload%1~=0 or payload<35184372088832 or payload>=9007199254740992 or
+           math.floor(payload/8192)%4294967296~=vid then return end
+        local packed=payload%8192;local hardpoint=math.floor(packed/128);local definition=packed%128-1
+        local v=vehicle(vid);local ok=false
+        if v and human(v) and air(v) and dock(v)==field('DOCK_DOCKED') and gi(v,'VEHICLE_ATTACHED_TO')==0 and
+           count(v,'VEHICLE_WAYPOINTS')==0 and not flights[vid] and not pending[vid] and definition<=101 and cc2.equipment then
+            local tid,index=gi(v,'VEHICLE_DOCK_TILE'),gi(v,'VEHICLE_DOCK_AIRFIELD')
+            local t=tile(tid);local af=t and airfield(tid,index)
+            if t and af and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM') and count(af,'AIRFIELD_HANGARS')==4 and
+               list_find(af,'AIRFIELD_HANGARS',vid)>=0 and list_find(af,'AIRFIELD_DOCK_QUEUE',vid)<0 and
+               list_find(af,'AIRFIELD_UNDOCK_QUEUE',vid)<0 then
+                ok=cc2.equipment.set_attachment(vid,hardpoint,definition,true)==true
+            end
+        end
+        -- Bounded ring of acknowledgements; a missed response never retries a mutation.
+        publish('loadout_reply',vid%32,ok and payload or -payload)
+    end
     function P.tick()
         if not sync_session() then return end
+        if cc2.messages.poll then
+            for _,message in ipairs(cc2.messages.poll() or {})do if message.topic=='loadout'then loadout(message)end end
+        end
         if now%8==0 then for _,vid in ipairs(sorted_keys(pending)) do
             local v,t=vehicle(vid),tile(pending[vid])
             if not v or not human(v) or not air(v) or dock(v)~=field('DOCK_UNDOCKED') or not t or gi(t,'TILE_TEAM')~=gi(v,'VEHICLE_TEAM') then pending[vid]=nil

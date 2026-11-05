@@ -1,30 +1,21 @@
-Island Airfields 2.1.2 client beta 1
+Island Airfields 2.2.0 client beta 1 - UNRELEASED TEST CANDIDATE
 
-Fixed-wing arrivals now join the outer runway approach circuit first. The owner
-confirmed the corrected oblique approach in an ordinary-host game. Existing
-CC2X SDK 0.8.1 installations need no runtime replacement for this update.
+Requires the matching CC2X 0.9.0-dev equipment candidate and the reviewed Windows
+CC2 1.5.18-r2 Steam client. The public SDK 0.8.1 cannot change island loadouts.
+This package is not gameplay-accepted or published. Preserve your current mod,
+runtime and save before an isolated test. Do not overwrite an unknown loader.
 
-Requires CC2X SDK 0.8.1 client beta 1 and the reviewed Windows CC2 1.5.18-r2 client.
-Subscribe to Island Airfields and the CC2X SDK Workshop item 3833014670.
-Close the game and copy the SDK item's content/dinput8.dll next to carrier_command.exe.
-Keep a backup of an older identified CC2X runtime; check compatibility before replacing another loader.
-Enable Island Airfields in the game's Mods menu, then restart.
-For Revolution 1.6-19 or 1.6-20, subscribe to the original Revolution mod and enable
-both mods. This is a separate addon; it contains no Revolution files or complete
-game screens and has no resource path overlaps with the reviewed Revolution.
-A ModLoader must review the exact new SDK runtime before automatic installation is supported.
+The addon contains no DLL. The matching SDK runtime is distributed separately.
+Workshop subscriptions alone do not replace a manually installed runtime DLL.
+For Revolution, keep the original Revolution 1.6-19/1.6-20 enabled alongside this
+addon; it contains no Revolution files or complete original screens.
 
-Land: on the vehicle-control map, give an airborne aircraft its first waypoint
-near an airfield on an owned island. Move its first waypoint there to replace
-an existing order; later route points remain ordinary movement orders.
-Revolution's holomap routes the carrier; its aircraft menu offers camera/airlift.
-Launch: give a parked aircraft a new waypoint away from the island.
-Cancel a landing: give a new order before touchdown.
+Click the separate airfield icon at the runway, select one of FOUR hangar bays,
+then choose Loadout (free) or Launch selected aircraft and a destination.
+Use Land aircraft or drag an aircraft onto the airfield icon to request landing.
+Ordinary ground waypoints remain movement orders. Empty bays cannot spawn planes.
+New compatible attachments are free and full; resource accounting is deferred.
 
-The earlier integration prototype passed user-reported ordinary-host checks.
-The separate delivery passed actual-SDK syntax/source checks and owned
-synthetic gameplay/UI tests. The corrected oblique approach was confirmed in
-a fresh ordinary-host game; complete touchdown/service/relaunch acceptance for
-this exact release remains separate from that approach check.
-Remote-client replication and dedicated-server acceptance are unverified.
-The mod contains Lua/content only. The shared SDK is installed separately.
+Runway geometry must first appear in a valid engine snapshot. Remote loadout
+commands are disabled. Fresh UI, ordinary-host, save/load and remote replication
+acceptance are pending. See docs/AIRFIELD_UI_2_2.md in the source checkout.

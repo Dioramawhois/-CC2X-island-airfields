@@ -99,9 +99,7 @@ def main():
                 lines=canonical(original).decode().split('\n')
                 delta=(ROOT/'lua'/(screen+'.patch')).read_text().splitlines()
                 modified='\n'.join(owned_patch.apply_patch(lines,delta,screen))
-                start=modified.index('-- [my_mod] Best-effort airbase anchor')
-                end=modified.index('function update(screen_w, screen_h, ticks)',start) if screen=='screen_holomap.lua' else modified.index('function input_event(event, action)',start)
-                modified=(modified[:start]+modified[end:]).encode()
+                modified=modified.encode()
             item=profile(original,modified)
             profiles.append(item)
         helper='carrier_traffic.lua' if screen=='screen_propulsion.lua' else 'ui_common.lua'
