@@ -1,8 +1,9 @@
 # Airfield controls: 2.2.0 candidate
 
-Status: unreleased UX revision; fresh graphical UI acceptance pending. The owner
-confirmed beta 4 save/reload with three arrivals and free equipment changes on
-2026-11-06. This revision preserves that flight policy and shared SDK binary.
+Status: client beta 5 approved by the owner for release after its graphical
+ordinary-host trial on 2026-11-06. Three-arrival save/reload and free equipment
+changes were explicitly confirmed in beta 4; the flight policy and SDK bytes
+are unchanged. Remote-client and dedicated-server acceptance remain absent.
 This document supersedes the 2.1.x automatic first-waypoint landing UI.
 
 ## Player flow

@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.0-client-beta.5 (unreleased candidate)
+## 2.2.0-client-beta.5 (2026-11-06)
 
 - Open the selected aircraft loadout directly from its bay. Reuse the carrier
   chassis/hardpoint widget through an owned input adapter and choose equipment
@@ -19,16 +19,18 @@
   carrier-hidden choices and preserve hierarchical Back navigation.
 - Separate airfield icons from island hubs, using real facility positions.
 - Match hub marker size, black edge, team colour and hover highlighting.
-- Discover distant host-side positions using the optional SDK CPU tile preview;
-  keep loaded and unloaded markers at the same facility origin.
+- Retain observed facility positions across streaming. The optional CPU preview
+  currently refuses unavailable tile definitions; never-streamed markers can
+  still require an approach and are a documented limitation.
 - Replace automatic ground/first-waypoint landing with explicit airfield actions.
 - Add exactly four hangar bays, aircraft selection and a launch destination picker.
 - Add free compatible hardpoint replacement/clearing with full new attachments.
   Use the optional shared CC2X equipment API; inventory accounting is deferred.
 - Preserve original map order call sites and the corrected 2.1.2 flight circuit.
   Stock and Revolution 1.6-19/1.6-20 remain separate, hash-pinned integrations.
-- Add real-Lua UI/input and policy regression fixtures. This candidate requires
-  fresh UI and ordinary-host gameplay acceptance before publication.
+- Add real-Lua UI/input and policy regression fixtures. The owner confirmed
+  three-arrival save/reload and equipment changes, then approved the graphical
+  update after an ordinary-host trial. Remote/dedicated support is unverified.
 
 ## 2.1.2-client-beta.1 (2026-11-05)
 

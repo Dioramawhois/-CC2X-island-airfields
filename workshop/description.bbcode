@@ -1,41 +1,37 @@
-[h1]Island Airfields 2.1.2 - Separate Revolution Addon[/h1]
-Planes and helicopters can land on owned island airfields, receive hangar service and launch on a new order.
+[h1]Island Airfields 2.2 - Graphical Airfield Loadouts[/h1]
+Land, refit and launch aircraft from owned island airfields. Separate addon for stock CC2 and Revolution 1.6-19/1.6-20.
 
-[h2]What's new[/h2]
-[list]
-[*]Fixed-wing arrivals join the outer runway approach circuit first, using the selected runway's real geometry. The corrected oblique approach was confirmed in an ordinary-host test.
-[*]A separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together.
-[*]No Revolution files, complete game screens or private gameplay DLL are included.
-[*]SDK 0.8.1 applies our small, version-checked screen changes in memory. Installed and Workshop files stay untouched.
-[*]Individual and group landing orders preserve Revolution's map controls and ordinary ground-unit routes.
-[*]Carrier flight-deck indications check the actual destination carrier, excluding island landings and other carriers' traffic.
-[/list]
+[h2]Four bays, direct aircraft selection[/h2]
+Click the airfield icon, then a parked aircraft in one of its [b]four numbered hangar bays[/b]. Its loadout opens directly using the [b]same graphical aircraft/hardpoint widget as the carrier[/b]. Select a point on the aircraft picture and choose compatible equipment by its icon. The focused option has a readable name; fitted equipment is marked. Back returns to the aircraft, then to the airfield.
 
-[h2]Install[/h2]
+The separate [b]Launch[/b] button is at the bottom of the aircraft editor. Press it, then click a destination on the map. Empty/busy bays cannot launch or create aircraft. Commands stay bound to the selected aircraft, even if another aircraft later occupies its bay.
+
+[h2]Equipment changes are free for now[/h2]
+Replace or clear compatible attachments. Newly fitted attachments start full. No island, warehouse, carrier or barge stock is consumed or refunded. Paid resource accounting is a separate future task. The editor does not create aircraft or change chassis. Pending changes block another refit or launch.
+
+[h2]Explicit landing on the map[/h2]
+[b]Drag an airborne aircraft onto the airfield icon on the vehicle-control map.[/b] There is no landing button or landing list in the airfield window. Ordinary ground waypoints remain movement orders, even beside a runway or at a distant map zoom.
+
+Airfield and hub markers are separate. The airfield uses its actual facility position when available, with team colour, black edge and hover style matching the hub. The hub retains production actions.
+
+[h2]Visible queues and saved landing orders[/h2]
+Assigned aircraft show dashed connections and QUEUE/HOLD/LAND/TAXI labels. Arrival counts appear beside the airfield and in its window; hover an assigned aircraft to see its destination. Several arrivals share the runway rather than losing their tasks while waiting.
+
+Landing targets remain in native saved data. The host restores arrivals after loading and repairs missing queue entries. Deferred explicit orders survive while waiting for island data. New movement or route cancellation clears the task. Older active saves can recover from saved hangar reservations; if both target and reservation are absent, the mod does not guess a destination.
+
+[h2]Install or update[/h2]
 [olist]
-[*]Subscribe to Island Airfields and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670]CC2X SDK[/url].
-[*]Close the game. Copy the SDK's [b]content/dinput8.dll[/b] beside [b]carrier_command.exe[/b]. Preserve a backup of a known older CC2X DLL; check compatibility before replacing a different loader.
-[*]Enable Island Airfields in Mods and restart.
+[*]Subscribe to Island Airfields and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670]CC2X SDK[/url]. Wait for Steam to finish downloading both.
+[*]Close the game. Install the matching [b]SDK 0.9.0-dev preview[/b] by copying its [b]content/dinput8.dll[/b] beside [b]carrier_command.exe[/b]. Keep a backup of an identified older CC2X runtime; check compatibility before replacing another loader.
+[*]Enable Island Airfields and restart. With Revolution, enable [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110]original Revolution[/url] too.
 [/olist]
-With Revolution, also subscribe to [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110]the original Revolution 1.6[/url] and enable [b]both mods[/b]. No combined repack is required. Without Revolution, enable Island Airfields normally.
+[b]SDK 0.8.1 cannot refit equipment.[/b] Workshop downloads do not replace manually installed DLLs. Automatic installation requires a ModLoader release explicitly supporting this exact runtime; otherwise use the manual route above.
+[url=https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/tag/0.9.0-dev]Matching SDK, source and checksums[/url]
+[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.0-client-beta.5]Island Airfields release and source[/url]
 
-Required runtime: [b]CC2X SDK 0.8.1-client-beta.1[/b]. Existing matching installations need no runtime replacement for 2.1.2. Older SDKs lack the required combined capabilities. Workshop downloads do not automatically replace a manually copied DLL. ModLoader must explicitly support this exact runtime before automatic installation.
-[url=https://github.com/Dioramawhois/-CC2X-island-airfields/blob/main/workshop/installation/README.md]Installation guide with screenshots[/url]
+[h2]Client beta scope[/h2]
+Windows, reviewed CC2 1.5.18-r2 and stock/Revolution 1.6-19/1.6-20 screen profiles. The owner tested ordinary-host gameplay, explicitly confirmed three-arrival save/reload and equipment changes, and approved the graphical UX update for release. Real-Lua UI/flight/queue and packaging checks pass separately.
 
-[h2]How to play[/h2]
-[list]
-[*]Land: on the vehicle-control map, give an airborne aircraft its first waypoint near an owned airfield. You can also move its existing first waypoint there. Later route points remain ordinary movement orders.
-[*]Launch: give a parked aircraft a new waypoint away from the island.
-[*]Cancel: replace the order before touchdown.
-[/list]
-Owned airfields are marked immediately in team colour. Planes and helicopters are enabled by default. Only the host runs the flight policy; landing requests use the game's replicated waypoint channel.
-Revolution's holomap routes the carrier; its aircraft menu offers camera and airlift actions.
+[b]Known limitation:[/b] exact markers for never-streamed islands may still need an approach; the experimental distant-position API currently refuses unavailable tile definitions. Far-distance native approach behavior is not universally fixed. Remote clients, dedicated servers and broader terrain/physics coverage remain unverified. Remote equipment input is disabled.
 
-[h2]Beta scope[/h2]
-Windows, reviewed CC2 1.5.18-r2 and Revolution 1.6-19/1.6-20 screen profiles. Unknown screen versions are skipped and logged. The owner confirmed the corrected oblique approach in a fresh ordinary-host game. Twelve complete synthetic flight cases through the actual SDK Host and real Lua pass separately. Full touchdown/service/relaunch acceptance for this exact release, broader terrain/physics coverage, a second remote client and dedicated servers remain unverified.
-
-The route improvement starts when the Lua flight policy takes over. Native queued guidance beyond six kilometres and deferred orders while runway geometry is not streamed retain their existing behavior and may still point toward the island's map anchor.
-
-Include SDK/game versions, enabled mods, reproduction steps and cc2x.log with reports.
-[url=https://github.com/Dioramawhois/-CC2X-island-airfields]Source and compatibility details[/url]
-Owned code: GPL-3.0-or-later. Revolution remains a separate third-party mod.
+No Revolution files, complete game screens or private gameplay DLL are included. Owned code is GPL-3.0-or-later; Revolution remains a separate third-party mod. Include game/SDK versions, enabled mods, reproduction steps and cc2x.log with reports.

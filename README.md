@@ -1,12 +1,12 @@
 # Island Airfields
 
-**2.2.0-client-beta.5** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
-**Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
+**2.2.0-client-beta.5** is the client beta release of the separate Lua addon for stock Carrier Command 2 and
+**Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev preview**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
-The published [2.1.2-client-beta.1 download](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1)
-remains the accepted runway-approach release. Version 2.2 has not been published.
+[Download 2.2 client beta 5](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.0-client-beta.5)
+with the [matching SDK preview](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/tag/0.9.0-dev).
 
 Click the airfield icon for four aircraft bays, then click a parked aircraft to
 open its loadout directly. Select hardpoints on the **same graphical widget used
@@ -17,9 +17,8 @@ Landing is issued on the map by dragging the aircraft onto the airfield icon;
 there is no landing menu button. Ordinary ground waypoints remain movement
 orders. Equipment changes remain free and newly fitted attachments start full.
 Arrival links and QUEUE/HOLD/LAND statuses remain available after save/reload.
-The owner confirmed three-arrival reload and equipment changes in beta 4; this
-new graphical UI still needs fresh in-game acceptance. Release preparation is
-paused for this UX revision. [Landing persistence](docs/LANDING_SAVE_RELOAD.md).
+The owner confirmed three-arrival reload and equipment changes, tested the
+graphical revision and approved this client beta for release. [Landing persistence](docs/LANDING_SAVE_RELOAD.md).
 
 The host runs the flight policy through public SDK APIs. The mod has no private
 gameplay DLL and contains no Revolution files or complete game screens.
@@ -27,9 +26,9 @@ gameplay DLL and contains no Revolution files or complete game screens.
 
 ## Install
 
-This development candidate is prepared for isolated testing. It needs its exact
-matching equipment SDK binary; SDK 0.8.1 provides no weapon replacement primitive.
-Do not replace the accepted installation to test it without preserving a backup.
+This update requires the exact matching SDK preview. SDK 0.8.1 cannot replace
+equipment. With the game closed, update a manually installed SDK DLL as described
+below; a Workshop download does not replace it automatically. Preserve a backup.
 
 
 Subscribe to Island Airfields and [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
@@ -47,7 +46,7 @@ explicitly supports this exact SDK binary.
 ## Screen integration
 
 The player package contains independent gameplay, owned UI helpers and hash-pinned
-screen-edit declarations. SDK 0.8.1 checks the actual screen's canonical SHA-256
+screen-edit declarations. The SDK checks the actual screen's canonical SHA-256
 and applies reviewed edits only in memory. Unknown screen versions are skipped
 and logged. The addon shares no resource paths with the reviewed Revolution
 package, so neither mod replaces the other's screens.
@@ -58,20 +57,20 @@ and other carriers' traffic. [Compatibility design and evidence](docs/REVOLUTION
 
 ## Validation scope
 
-The candidate passes owned real-Lua UI/callback and loadout-policy fixtures,
+The release passes owned real-Lua UI/callback and loadout-policy fixtures,
 actual-SDK synthetic flight regressions, syntax-only screen delivery for stock
 and both reviewed Revolution versions, and packaging safety checks. The SDK's
 native equipment path also passes static checks against the exact executable.
 The owner confirmed beta 4 save/reload with three arrivals and equipment changes
-in an ordinary-host game. The new carrier-widget adapter has owned substitute
-tests and static stock/Revolution interface inspection; its visuals and controls
-need fresh in-game acceptance. Remote multiplayer and dedicated servers remain
+in an ordinary-host game. The graphical beta 5 update subsequently received owner release approval.
+The carrier-widget adapter also has owned substitute tests and static interface
+inspection for stock and both Revolution versions. Remote multiplayer and dedicated servers remain
 unverified.
 
-Distant host-side markers use the matching SDK CPU placement preview, with
-no hub-based fallback. They share the hub marker style. Preview latency and
-alignment still need in-game acceptance. Remote equipment commands are
-disabled. Remote multiplayer and dedicated servers remain unverified.
+Exact markers for never-streamed islands may still need an approach. The
+experimental CPU placement preview currently refuses unavailable tile definitions;
+this release does not promise distant marker discovery or fix every native
+far-distance approach. Remote equipment input is disabled.
 
 ## Developer build
 
