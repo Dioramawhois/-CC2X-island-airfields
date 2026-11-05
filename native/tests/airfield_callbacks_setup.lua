@@ -31,15 +31,15 @@ function update_get_is_multiplayer()return false,true end
 function get_screen_from_world(x,z)return 30+x*.1,40+z*.1 end
 function color8(...)return {...}end
 function update_get_team_color()return color8(0,255,0,255)end
-function update_ui_image(x,y)drawn[#drawn+1]={x,y}end
+function update_ui_image()error("The 8px production icon must not be used as a facility marker")end
 function update_ui_circle()end
-function update_ui_rectangle()end
+function update_ui_rectangle(x,y,w,h,c)drawn[#drawn+1]={x,y,w,h,c}end
 function update_ui_text(x,y,text)texts[#texts+1]=text end
 function update_get_attachment_option_count()return 1 end
 function update_get_attachment_option()return 30 end
 function get_attachment_data_by_definition_index()return {name='Test weapon'}end
 atlas_icons={map_icon_factory_chassis_air=1}
-cc2x={airfields=function()return {{tile=10,index=0,runway_start_x=800,runway_start_z=100,
+cc2x={airfields=function()return {{tile=10,index=0,x=900,z=200,runway_start_x=800,runway_start_z=100,
  runway_end_x=1000,runway_end_z=300,hangars={21,0,0,0}}}end,modules={
  read=function(_,topic)if topic=='active' or topic=='planes' or topic=='equipment'then return 1 end
  if topic=='session'then return session end;if topic=='loadout_reply'then return reply end end,

@@ -5,7 +5,9 @@ This document supersedes the 2.1.x automatic first-waypoint landing UI.
 
 ## Player flow
 
-An airfield has its own aircraft-factory icon at the midpoint of its real runway.
+An airfield has an owned aircraft silhouette at its actual facility origin.
+Like the island hub, it uses a 16-pixel marker, a one-pixel black edge, the
+island team colour and white hover highlighting. It is separate from production.
 The island hub retains its original icon and production actions. The airfield
 hit area has a fixed seven-pixel radius; ordinary ground points remain movement
 orders at every map scale.
@@ -31,12 +33,21 @@ The paid resource model in planning item IAF-003 remains a separate task.
 ## Data and command contract
 
 The owned UI reads the public `cc2x.airfields()` snapshots. Each field is addressed
-by `(tile, index)` and must report exactly four hangar IDs. Runway midpoint
-coordinates come from `runway_start_x/z` and `runway_end_x/z`; no island-hub
-fallback is used. Geometry seen by this screen is retained until the session or
-ownership changes. An unloaded cached field cannot launch or change loadout.
-Never-observed/unstreamed runway geometry is not invented; its icon appears only
-after a valid snapshot becomes available. Persistent map discovery is future work.
+by `(tile, index)` and must report exactly four hangar IDs. Loaded positions use
+the airfield object's `x/z`; no island-hub fallback is used. Before streaming,
+the UI requests placement discovery for team-owned islands through the host-local
+`site_request` mailbox. The host spreads `cc2.tiles.sites(tile, 0, 3)` queries over
+updates, selecting active environment layers from the stock CPU terrain result.
+Only an unambiguous single airfield publishes `site_x/site_z` and advances
+`layout_revision`. Its transform matches the origin used by the native airfield
+builder. This neither loads a simulation island nor creates aircraft.
+
+The CPU preview is session-cached by the SDK, bounded and exact-executable guarded.
+An initial query is synchronous and may hitch; actual latency and alignment must
+be checked in game. Refused/ambiguous previews do not invent a location. The UI
+retains observed positions until the session or ownership changes. An unloaded
+field can accept an explicit landing order, but cannot launch or change loadout.
+The mailbox is host-local; distant discovery on remote clients is unverified.
 
 The screen's original forward transform supplies projection and its affine
 inverse supplies the launch destination. Stock holomap aspect/camera parameters
@@ -75,8 +86,11 @@ disabled: the mailbox is not an authenticated multiplayer command channel.
 Use an isolated ordinary-host test with the exact candidate mod and matching SDK
 artifact, at x1 time. Retain a save backup and the existing published installation.
 
-1. Confirm the airfield icon is on the runway and the hub still opens production.
-   Check the control map and holomap at several zoom levels, including Revolution.
+1. Before approaching an owned island, confirm its airfield marker appears at
+   the facility and matches the hub's size, edge, team colour and hover style.
+   Approach the island and confirm the marker does not jump when it streams.
+   Check the control map and holomap at several zoom levels, including Revolution;
+   the hub must still open production. Record CPU-preview latency from the log.
 2. Place and drag ordinary aircraft/group waypoints across the island. None should
    become a landing order. Click and drag explicit landing actions separately.
 3. Confirm exactly four bays, occupied/empty state and selection of a specific bay.

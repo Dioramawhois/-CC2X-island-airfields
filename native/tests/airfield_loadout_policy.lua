@@ -47,3 +47,20 @@ queue={{topic='loadout',subject=22,value=payload},{topic='loadout',subject=21,va
 p.tick();assert(#calls==before)
 assert(replies['equipment:0']==1)
 print('PASS free loadout policy, complete refill, clear, compatibility refusal, four bays, ownership, queues and malformed requests')
+
+-- Map discovery uses isolated placement data before an island controller exists.
+local preview_calls=0
+cc2.world.vehicles=function()return {{team=1,team_is_ai=false}}end
+cc2.tiles={sites=function(tid,kind,definition)
+ assert(tid==10 and kind==0 and definition==3);preview_calls=preview_calls+1
+ return {{x=900,z=200,flags_low=1},{x=9999,z=9999,flags_low=0}}
+end}
+cc2.session.tick=function()return 17 end
+values.tile_team=1
+local q=policy.new(cc2,{planes=true})
+queue={{topic='site_request',subject=10,value=0},{topic='site_request',subject=10,value=0}}
+q.tick()
+assert(preview_calls==1 and replies['site_x:10']==900 and replies['site_z:10']==200 and replies['layout_revision:0']==1)
+values.tile_team=2;q=policy.new(cc2,{planes=true})
+queue={{topic='site_request',subject=10,value=0}};q.tick();assert(preview_calls==1,'non-human-owned island was generated')
+print('PASS distant site requests, human-team authorization, deduplication, active-layer filtering and actual placement coordinates')

@@ -6,7 +6,7 @@ e_vehicle_dock_state={undocked=0,docked=4,dock_queue=5,docking=1}
 e_input={pointer_1=1,action_a=2,back=3,up=4,down=5,left=6,right=7}
 e_input_action={press=1,release=0}
 local team,active,session=1,true,1
-local data={{tile=10,index=0,runway_start_x=800,runway_start_z=100,
+local data={{tile=10,index=0,x=900,z=200,runway_start_x=800,runway_start_z=100,
  runway_end_x=1000,runway_end_z=300,hangars={21,22,0,0}}}
 local islands={}
 islands[10]={get=function()return true end,get_id=function()return 10 end,
@@ -68,3 +68,21 @@ assert(#mm_airfields()==0 and not mm_issue_landing(v,bases[1]),'inactive module 
 active=true;data={};session=2
 assert(#mm_airfields()==0,'geometry from the previous session survived')
 print('PASS precise airfield positions, four slots, explicit landing, pure movement, launch and session/owner guards')
+
+-- A fresh screen can discover an owned unloaded field before any physical visit.
+session=3;active=true;data={};local requested=0
+cc2x.modules.send=function(owner,topic,id,value)
+ assert(owner=='island_airfields' and topic=='site_request' and id==10 and value==0);requested=requested+1;return true
+end
+cc2x.modules.read=function(_,topic,subject)
+ if topic=='active' or topic=='planes' or topic=='tile_sites'then return 1 end
+ if topic=='session'then return session end
+ if topic=='layout_revision'then return 1 end
+ if topic=='site_x'then return 900 end
+ if topic=='site_z'then return 200 end
+end
+local distant=mm_airfields()
+assert(#distant==1 and distant[1].x==900 and not distant[1].loaded and #distant[1].slots==4)
+assert(requested==1 and not mm_launch(10,0,0,1,2),'unloaded field launched or discovery repeated')
+mm_airfields();assert(requested==1)
+print('PASS fresh distant-field discovery without a streamed snapshot; no invented hub position or unloaded launch')

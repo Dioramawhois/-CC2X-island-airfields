@@ -16,6 +16,11 @@
       "name": "cc2x.equipment",
       "version": 1,
       "query_export": "cc2x_query_equipment_v1"
+    },
+    {
+      "name": "cc2x.tile_sites",
+      "version": 1,
+      "query_export": "cc2x_query_tile_sites_v1"
     }
   ],
   "lua_api_version": 2,
@@ -24,8 +29,9 @@
     "waypoint-origin-v1",
     "screen-extensions-v1",
     "screen-source-edits-v1",
-    "vehicle-equipment-v1"
+    "vehicle-equipment-v1",
+    "tile-sites-v1"
   ],
-  "tested_source_commit": "9b07f29",
-  "tested_runtime_sha256": "16ee1e6e99e52489c12261ea60fe7c55f7974035c855a5be2fdfcdc72c17dc67"
+  "tested_source_commit": "19c3d55a504621b4b77c4320d9d3df02273486cf",
+  "tested_runtime_sha256": "d83d509dbc0cc8b4f01db26c55bb428fc904186155a492d4f14411f09726f85e"
 }

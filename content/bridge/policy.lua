@@ -19,6 +19,7 @@ function M.new(cc2, settings)
     local W, F, P = cc2.world, cc2.world.fields, {}
     local generation, pending, flights, locks, plans, plan_order = 0, {}, {}, {}, {}, {}
     local now = 0
+    local site_queue,site_seen,site_revision = {},{},0
     local function field(name)
         local value=F['CC2X_'..name];assert(value, 'Missing SDK field: '..name);return value
     end
@@ -50,7 +51,10 @@ function M.new(cc2, settings)
         if current ~= generation then
             generation, pending, flights, locks, plans, plan_order = current, {}, {}, {}, {}, {}
             publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 2)
+            site_queue,site_seen,site_revision={},{},0
             publish('session', 0, current)
+            publish('layout_revision',0,0);publish('layout_error',0,0)
+            publish('tile_sites',0,cc2.tiles and type(cc2.tiles.sites)=='function' and 1 or 0)
             publish('equipment',0,cc2.equipment and cc2.equipment.available() and 1 or 0)
         end
         now = cc2.session.tick()
@@ -450,11 +454,41 @@ function M.new(cc2, settings)
         -- Bounded ring of acknowledgements; a missed response never retries a mutation.
         publish('loadout_reply',vid%32,ok and payload or -payload)
     end
+    local function request_sites(tid)
+        if type(tid)~='number' or tid<=0 or tid%1~=0 or tid>4294967295 or site_seen[tid] or #site_queue>=64 then return end
+        local t=tile(tid);if not t or not cc2.tiles or type(cc2.tiles.sites)~='function'then return end
+        local team=gi(t,'TILE_TEAM');local allowed=false
+        for _,v in ipairs(W.vehicles() or {})do if v.team==team and v.team_is_ai==false then allowed=true;break end end
+        if allowed then site_seen[tid]=true;site_queue[#site_queue+1]=tid end
+    end
+    local function discover_site()
+        if #site_queue==0 or now%16~=1 then return end
+        local tid=table.remove(site_queue,1)
+        -- Stock's own airfield builder selects environment kind 0 / definition 3.
+        -- The SDK generates CPU placement data without streaming a live island.
+        local sites,why=cc2.tiles.sites(tid,0,3)
+        if sites then
+            local active={};for _,site in ipairs(sites)do if type(site.flags_low)=='number' and (site.flags_low&255)~=0 then active[#active+1]=site end end
+            sites=active
+        end
+        if sites and #sites<=1 then
+            publish('count',tid,#sites)
+            if #sites==1 then publish('site_x',tid,sites[1].x);publish('site_z',tid,sites[1].z)end
+            site_revision=site_revision+1;publish('layout_revision',0,site_revision)
+        else
+            publish('layout_error',0,tid)
+            print(('airfield map data tile %d unavailable: %s'):format(tid,tostring(why or 'multiple unaddressable fields')))
+        end
+    end
     function P.tick()
         if not sync_session() then return end
         if cc2.messages.poll then
-            for _,message in ipairs(cc2.messages.poll() or {})do if message.topic=='loadout'then loadout(message)end end
+            for _,message in ipairs(cc2.messages.poll() or {})do
+                if message.topic=='loadout'then loadout(message)
+                elseif message.topic=='site_request'then request_sites(message.subject)end
+            end
         end
+        discover_site()
         if now%8==0 then for _,vid in ipairs(sorted_keys(pending)) do
             local v,t=vehicle(vid),tile(pending[vid])
             if not v or not human(v) or not air(v) or dock(v)~=field('DOCK_UNDOCKED') or not t or gi(t,'TILE_TEAM')~=gi(v,'VEHICLE_TEAM') then pending[vid]=nil

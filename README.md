@@ -1,6 +1,6 @@
 # Island Airfields
 
-**2.2.0-client-beta.1** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
+**2.2.0-client-beta.2** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
@@ -59,8 +59,9 @@ These are offline checks. New icons, loadout construction/clear/refill, save/loa
 and launch need fresh ordinary-host acceptance. UI screenshots or direct owner
 confirmation and gameplay confirmation are required before publication.
 
-Runway geometry appears after a valid snapshot has been observed; no hub-based
-position is invented for unstreamed airfields. Remote equipment commands are
+Distant host-side markers use the matching SDK CPU placement preview, with
+no hub-based fallback. They share the hub marker style. Preview latency and
+alignment still need in-game acceptance. Remote equipment commands are
 disabled. Remote multiplayer and dedicated servers remain unverified.
 
 ## Developer build

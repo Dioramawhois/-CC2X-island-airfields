@@ -22,5 +22,5 @@ visible=false;frame();local before=original_calls;input_event(e_input.action_a,1
 assert(original_calls==before+1,'invisible map intercepted an original input')
 -- Stock holomap has no Revolution helper; its own camera/aspect function is used.
 get_holomap_from_world=nil;drawn={};mm_draw_airfields(256,256,true)
-assert(drawn[1][1]==112 and drawn[1][2]==52)
+assert(drawn[1][1]==118 and drawn[1][2]==49 and #drawn==6)
 print('PASS actual callback wrapper, mouse modal, eight hardpoints, free mailbox request/result, pending guard, launch transform and stock fallback')

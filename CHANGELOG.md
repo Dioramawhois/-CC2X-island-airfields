@@ -1,8 +1,11 @@
 # Changelog
 
-## 2.2.0-client-beta.1 (unreleased candidate)
+## 2.2.0-client-beta.2 (unreleased candidate)
 
-- Separate airfield icons from island hubs, using real runway positions.
+- Separate airfield icons from island hubs, using real facility positions.
+- Match hub marker size, black edge, team colour and hover highlighting.
+- Discover distant host-side positions using the optional SDK CPU tile preview;
+  keep loaded and unloaded markers at the same facility origin.
 - Replace automatic ground/first-waypoint landing with explicit airfield actions.
 - Add exactly four hangar bays, aircraft selection and a launch destination picker.
 - Add free compatible hardpoint replacement/clearing with full new attachments.

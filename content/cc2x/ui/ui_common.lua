@@ -1,6 +1,7 @@
 -- SPDX-License-Identifier: GPL-3.0-or-later
 -- Owned map/airfield UI. Engine policy stays in the independent module.
 local cache, cache_session = {}, nil
+local site_requested,site_revision,last_site_scan={},nil,-60
 local frame = {visible=false, holomap=false, w=256, h=256, hover=nil}
 local ui = {base=nil, slot=0, mode='base', controls={}, focus=1, message=nil, route=nil}
 local request_serial=0
@@ -50,18 +51,35 @@ end
 function mm_airfields()
     if not mm_plugin() and not mm_remote_host()then cache={};return {} end
     local session=read('session',0)
-    if session~=cache_session then cache,cache_session={},session;g_mm_landing_orders={} end
+    if session~=cache_session then cache,cache_session={},session;g_mm_landing_orders={};site_requested,site_revision,last_site_scan={},nil,-60 end
+    local revision=read('layout_revision',0)
+    local serial=frame.number or 0
+    if read('tile_sites',0)==1 and (revision~=site_revision or serial-last_site_scan>=60)then
+        last_site_scan=serial;site_revision=revision
+        for i=0,update_get_tile_count()-1 do
+            local t=update_get_tile_by_index(i);local tid=t:get_id()
+            if own(tid)then
+                if not site_requested[tid] and cc2x.modules and type(cc2x.modules.send)=='function'then
+                    site_requested[tid]=cc2x.modules.send('island_airfields','site_request',tid,0)==true
+                end
+                local x,z=read('site_x',tid),read('site_z',tid)
+                if finite(x) and finite(z)then
+                    local key=tid..':0';if not cache[key]then cache[key]={tile=tid,index=0,x=x,z=z,slots={0,0,0,0},loaded=false}end
+                end
+            end
+        end
+    end
     for _,b in pairs(cache)do b.loaded=false end
     local snapshots=cc2x and type(cc2x.airfields)=='function' and cc2x.airfields() or {}
     for _,a in ipairs(snapshots or {})do
         if integer(a.tile) and integer(a.index) and a.index<8 and own(a.tile) and
-           finite(a.runway_start_x) and finite(a.runway_start_z) and finite(a.runway_end_x) and finite(a.runway_end_z) and
+           finite(a.x) and finite(a.z) and finite(a.runway_start_x) and finite(a.runway_start_z) and finite(a.runway_end_x) and finite(a.runway_end_z) and
            (a.runway_start_x-a.runway_end_x)^2+(a.runway_start_z-a.runway_end_z)^2>1 and
            type(a.hangars)=='table' and #a.hangars==4 then
             local slots={};local valid=true
             for i=1,4 do slots[i]=a.hangars[i];valid=valid and integer(slots[i])end
             if valid then cache[a.tile..':'..a.index]={tile=a.tile,index=a.index,
-                x=(a.runway_start_x+a.runway_end_x)/2,z=(a.runway_start_z+a.runway_end_z)/2,
+                x=a.x,z=a.z,
                 slots=slots,loaded=true} end
         end
     end
@@ -132,13 +150,26 @@ local function cursor()
     return g_cursor_pos_x or frame.w/2,g_cursor_pos_y or frame.h/2
 end
 local function colour(r,g,b,a)return color8(r,g,b,a or 255)end
+local function facility_colour(hovered)
+    if hovered then return colour(255,255,255) end
+    if type(get_island_team_color)=='function'then return get_island_team_color(update_get_screen_team_id())end
+    return update_get_team_color(update_get_screen_team_id())
+end
+local function airfield_marker(x,y,c)
+    -- The hub is a 16px team-coloured silhouette with a one-pixel black edge.
+    -- Draw an owned aircraft silhouette in that same style and anchor. The
+    -- production-category icon is only 8px and is not a facility marker.
+    local parts={{7,1,2,12},{1,6,14,2},{4,11,8,2}}
+    for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1]-1,y-11+p[2]-1,p[3]+2,p[4]+2,colour(0,0,0))end
+    for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1],y-11+p[2],p[3],p[4],c)end
+end
 function mm_draw_airfields(w,h,holomap)
     frame.visible,frame.holomap,frame.w,frame.h,frame.hover=true,holomap,w,h,nil
     local px,py=cursor();local best=49
     for _,b in ipairs(mm_airfields())do
         local x,y=project(b.x,b.z);local dx,dy=x-px,y-py;local distance=dx*dx+dy*dy
         if distance<best then frame.hover,best=b,distance end
-        update_ui_image(x-8,y-8,atlas_icons.map_icon_factory_chassis_air,update_get_team_color(update_get_screen_team_id()),0)
+        airfield_marker(x,y,facility_colour(distance<49))
     end
     if holomap then return end
     for i=0,update_get_map_vehicle_count()-1 do
@@ -283,7 +314,7 @@ end
 local original_update,original_event=update,input_event
 if type(original_update)=='function'then
     function update(w,h,ticks)
-        frame.visible,frame.hover=false,nil;frame.w,frame.h=w,h
+        frame.visible,frame.hover=false,nil;frame.w,frame.h=w,h;frame.number=(frame.number or 0)+1
         original_update(w,h,ticks)
         result(ticks)
         if frame.visible then panel()else close();ui.route=nil end
