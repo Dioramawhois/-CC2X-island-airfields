@@ -119,6 +119,11 @@ function mm_is_queued_at_airfield(v)
     return get_is_vehicle_air(v:get_definition_index()) and (s==e_vehicle_dock_state.dock_queue or s==e_vehicle_dock_state.docking) and
         v:get_dock_queue_vehicle_id()==0 and v:get_attached_parent_id()==0
 end
+local function landing_target(v)
+    local tid=read('landing',v:get_id())
+    if tid==nil then tid=g_mm_landing_orders[v:get_id()] end
+    if integer(tid) and tid>0 and own(tid)then return tid,read('landing_stage',v:get_id()) or 1 end
+end
 local function parked(b,slot)
     if not b or not b.loaded or not integer(slot) or slot>3 then return nil end
     local id=b.slots[slot+1];if not id or id==0 then return nil end
@@ -163,31 +168,70 @@ local function airfield_marker(x,y,c)
     for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1]-1,y-11+p[2]-1,p[3]+2,p[4]+2,colour(0,0,0))end
     for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1],y-11+p[2],p[3],p[4],c)end
 end
+local function map_link(x,y,tx,ty,c)
+    if not finite(x) or not finite(y) or not finite(tx) or not finite(ty)then return end
+    local dx,dy=tx-x,ty-y;local first,last=0,1
+    local function edge(p,q)
+        if p==0 then return q>=0 end
+        local t=q/p
+        if p<0 then first=math.max(first,t)else last=math.min(last,t)end
+        return first<=last
+    end
+    if not edge(-dx,x) or not edge(dx,frame.w-1-x) or not edge(-dy,y) or not edge(dy,frame.h-1-y)then return end
+    tx,ty=x+dx*last,y+dy*last;x,y=x+dx*first,y+dy*first
+    if not frame.holomap and type(render_dashed_line)=='function'then render_dashed_line(x,y,tx,ty,c);return end
+    -- Holomap has no vehicle-control render_dashed_line helper. Bound work to
+    -- the visible segment and use the same three-pixel dash/spacing style.
+    dx,dy=tx-x,ty-y;local length=math.sqrt(dx*dx+dy*dy);if length<1 then return end
+    local step=math.max(6,length/512)
+    for cursor=0,length,step do
+        local finish=math.min(cursor+3,length)
+        update_ui_line(x+dx*cursor/length,y+dy*cursor/length,x+dx*finish/length,y+dy*finish/length,c)
+    end
+end
 function mm_draw_airfields(w,h,holomap)
     frame.visible,frame.holomap,frame.w,frame.h,frame.hover=true,holomap,w,h,nil
-    local px,py=cursor();local best=49
+    local px,py=cursor();local best=49;local positions,arrivals={},{}
+    frame.traffic_hint=nil
     for _,b in ipairs(mm_airfields())do
         local x,y=project(b.x,b.z);local dx,dy=x-px,y-py;local distance=dx*dx+dy*dy
         if distance<best then frame.hover,best=b,distance end
         airfield_marker(x,y,facility_colour(distance<49))
+        positions[b.tile]={x=x,y=y}
     end
-    if holomap then return end
     for i=0,update_get_map_vehicle_count()-1 do
         local v=update_get_map_vehicle_by_index(i)
         if v:get() and v:get_team()==update_get_screen_team_id() and get_is_vehicle_air(v:get_definition_index())then
             local p=v:get_position_xz();local x,y=project(p:x(),p:y());local c=update_get_team_color(v:get_team())
-            if mm_is_parked_at_airfield(v)then update_ui_circle(x,y,7,12,c)
-            elseif mm_is_queued_at_airfield(v)then
-                local tid=g_mm_landing_orders[v:get_id()]
+            if mm_is_parked_at_airfield(v)then
+                if not holomap then update_ui_circle(x,y,7,12,c)end
+            else
+                local tid,stage=landing_target(v)
                 if tid then
-                    local t=update_get_tile_by_id(tid)
-                    if t and t:get()then local tx,tz=mm_island_pos(t)
-                        if tx and tz then local sx,sy=project(tx,tz);render_dashed_line(x,y,sx,sy,c)end
+                    arrivals[tid]=(arrivals[tid] or 0)+1
+                    local destination=positions[tid]
+                    if destination then map_link(x,y,destination.x,destination.y,c)end
+                    local label=stage==2 and 'QUEUE' or (stage==3 and 'HOLD' or (stage==5 and 'TAXI' or 'LAND'))
+                    if x>=0 and x<frame.w and y>=0 and y<frame.h then
+                        update_ui_text(math.min(x+7,frame.w-34),math.max(0,y-10),label,34,0,c,0)
+                    end
+                    if (x-px)^2+(y-py)^2<64 then
+                        local t=update_get_tile_by_id(tid)
+                        local destination_name=type(t.get_name)=='function' and t:get_name() or ('Island '..tid)
+                        frame.traffic_hint=label..' -> '..destination_name
                     end
                 end
             end
         end
     end
+    for tid,n in pairs(arrivals)do local p=positions[tid]
+        if p and p.x>=0 and p.x<frame.w and p.y>=0 and p.y<frame.h then
+            local x,y=math.max(0,math.min(frame.w-20,p.x+8)),math.max(0,p.y-20)
+            update_ui_rectangle(x,y,20,9,colour(0,0,0))
+            update_ui_text(x+1,y,tostring(n),18,0,facility_colour(false),0)
+        end
+    end
+    frame.arrivals=arrivals
 end
 function mm_draw_cc2x_notice(w,h)
     if mm_plugin() or mm_remote_host()then return end
@@ -309,6 +353,9 @@ local function panel()
             update_ui_rectangle(0,0,frame.w,29,colour(8,14,18,245))
             text(6,4,'Launch: choose destination',frame.w-12,colour(255,215,100))
             text(6,15,'Back cancels',frame.w-12,colour(170,185,190))
+        elseif frame.traffic_hint then
+            update_ui_rectangle(0,frame.h-13,frame.w,13,colour(8,14,18,245))
+            text(6,frame.h-11,frame.traffic_hint,frame.w-12,colour(235,245,245))
         end
         return
     end
@@ -330,7 +377,10 @@ local function panel()
     if ui.pending then message='Changing loadout...'
     elseif not b.loaded then message='Approach island to view hangar data'end
     if ui.mode=='base'then
-        text(8,20,narrow and 'HANGAR / 4 BAYS' or 'HANGAR / SELECT A BAY',frame.w-16,muted)
+        local arriving=frame.arrivals and frame.arrivals[b.tile] or 0
+        local heading=narrow and 'HANGAR / 4 BAYS' or 'HANGAR / SELECT A BAY'
+        if arriving>0 then heading=narrow and ('ARRIVALS: '..arriving) or ('4 BAYS / '..arriving..' ARRIVING')end
+        text(8,20,heading,frame.w-16,muted)
         local gap=4;local card_w=math.floor((frame.w-20)/2)
         local card_h=compact and 19 or math.max(21,math.min(44,math.floor((frame.h-146)/2)))
         local grid_y=compact and 30 or 33

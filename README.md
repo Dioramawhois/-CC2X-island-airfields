@@ -1,6 +1,6 @@
 # Island Airfields
 
-**2.2.0-client-beta.3** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
+**2.2.0-client-beta.4** is an unreleased development candidate of the separate Lua addon for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev equipment candidate**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
@@ -13,7 +13,10 @@ selected-aircraft status and separate landing/loadout/launch actions. Select a b
 change compatible weapons for free or launch the selected aircraft toward a
 chosen point. Use **Land aircraft** or drag an aircraft onto the airfield icon
 for landing. Ordinary ground waypoints stay movement orders. Inventory accounting
-is a separate future task; newly fitted attachments start full.
+is a separate future task; newly fitted attachments start full. Arrival links and
+QUEUE/HOLD/LAND statuses are restored from host state. The candidate retains
+landing intent in saved engine fields and repairs missing queue entries;
+[native save/reload acceptance is pending](docs/LANDING_SAVE_RELOAD.md).
 
 The host runs the flight policy through public SDK APIs. The mod has no private
 gameplay DLL and contains no Revolution files or complete game screens.

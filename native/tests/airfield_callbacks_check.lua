@@ -88,6 +88,39 @@ input_event(e_input.action_a,1);frame();assert(has('Hardpoint 1'),'gamepad canno
 input_event(e_input.back,1);frame()
 visible=false;frame();local before=original_calls;input_event(e_input.action_a,1)
 assert(original_calls==before+1,'invisible map intercepted an original input')
+-- Fresh UI state must reconstruct every saved arrival from host metadata,
+-- without relying on the screen-local table populated by an earlier click.
+local old_read,old_count,old_index=cc2x.modules.read,update_get_map_vehicle_count,update_get_map_vehicle_by_index
+local queued={};local stage=2;local target=10;local links={}
+for i=1,3 do
+ local aircraft=setmetatable({},{__index=test_aircraft})
+ function aircraft:get_id()return 20+i end
+ function aircraft:get_dock_state()return e_vehicle_dock_state.dock_queue end
+ function aircraft:get_position_xz()return {x=function()return 1000+i*100 end,y=function()return 400+i*100 end}end
+ queued[i]=aircraft
+end
+function update_get_map_vehicle_count()return #queued end
+function update_get_map_vehicle_by_index(i)return queued[i+1]end
+cc2x.modules.read=function(owner,topic,subject)
+ if topic=='landing'then return target end;if topic=='landing_stage'then return stage end
+ return old_read(owner,topic,subject)
+end
+function render_dashed_line(x,y,tx,ty)links[#links+1]={x,y,tx,ty}end
+visible=true;g_mm_landing_orders={};g_pointer_pos_x,g_pointer_pos_y=140,90;frame()
+assert(#links==3 and links[1][3]==120 and links[1][4]==60 and has('QUEUE') and has('3'),
+ 'saved queued aircraft lost their explicit airfield link/count')
+stage=3;links={};frame();assert(#links==3 and has('HOLD'))
+stage=4;links={};frame();assert(#links==3 and has('LAND'))
+local segment_count=0
+render_dashed_line=nil
+function update_ui_line(x,y,tx,ty)
+ assert(x>=0 and x<256 and y>=0 and y<256 and tx>=0 and tx<256 and ty>=0 and ty<256)
+ segment_count=segment_count+1
+end
+mm_draw_airfields(256,256,true)
+assert(segment_count>0 and segment_count<512*3,'holomap needs bounded own dashed links without the control helper')
+target=0;links={};frame();assert(#links==0 and not has('QUEUE'),'canceled order kept a stale map link')
+cc2x.modules.read,update_get_map_vehicle_count,update_get_map_vehicle_by_index=old_read,old_count,old_index
 -- Stock holomap has no Revolution helper; its own camera/aspect function is used.
 get_holomap_from_world=nil;drawn={};mm_draw_airfields(256,256,true)
 assert(drawn[1][1]==118 and drawn[1][2]==49 and #drawn==6)

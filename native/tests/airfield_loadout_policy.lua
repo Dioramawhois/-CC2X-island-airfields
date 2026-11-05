@@ -17,7 +17,7 @@ local queue,replies,calls={}, {}, {}
 local cc2={world={fields=F,find=function(f,id)
  if f=='CC2X_WORLD_VEHICLES' and id==21 then return v end
  if f=='CC2X_WORLD_TILES' and id==10 then return t end
-end,tiles=function()return {}end},session={generation=function()return 1 end,tick=function()return 2 end},
+end,tiles=function()return {}end,vehicles=function()return {}end},session={generation=function()return 1 end,tick=function()return 2 end},
  messages={publish=function(topic,subject,value)replies[topic..':'..subject]=value;return true end,
  poll=function()local result=queue;queue={};return result end},equipment={available=function()return true end,
  set_attachment=function(id,slot,definition,fill)

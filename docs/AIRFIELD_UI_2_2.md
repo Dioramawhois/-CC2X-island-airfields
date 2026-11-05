@@ -78,6 +78,13 @@ UI refuses ambiguous multi-field landing because the core landing request takes
 an island rather than an exact field index. Launch uses a normal move order on
 the selected parked aircraft, which the existing host policy interprets as takeoff.
 
+Landing destinations remain in native serialized docking fields after acceptance;
+deferred orders retain their explicit typed waypoint. Queue repair and UI
+reconstruction are described in [Landing save/reload](LANDING_SAVE_RELOAD.md).
+The map/holomap show QUEUE/HOLD/LAND/TAXI, a dashed link to the field and an arrival
+count. Hovering an assigned aircraft names its destination. These survive a fresh
+screen state through host metadata rather than requiring another click.
+
 Loadout uses the existing host-local mailbox:
 
 - Request owner `island_airfields`, topic `loadout`, subject `vehicle_id`.
@@ -122,6 +129,9 @@ artifact, at x1 time. Retain a save backup and the existing published installati
    approach. Check cancellation and capture/session changes.
 7. Save/reload and confirm the weapon change survives. Test a second remote client
    separately before making replication claims; remote equipment input stays disabled.
+8. Save/reload with three arrivals to one field, including a waiting aircraft and
+   a deferred arrival before streaming. Confirm all links, statuses and final bays;
+   repeat after clearing/replacing a route to ensure cancellation stays canceled.
 
 Screenshots or direct owner confirmation establish UI acceptance. Offline Lua,
 mock-host, syntax checks and static executable inspection establish only their

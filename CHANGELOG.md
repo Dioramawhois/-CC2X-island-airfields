@@ -1,7 +1,13 @@
 # Changelog
 
-## 2.2.0-client-beta.3 (unreleased candidate)
+## 2.2.0-client-beta.4 (unreleased candidate)
 
+- Preserve native landing targets through save/reload; restore missing queue
+  entries and legacy active arrivals from their saved hangar reservations.
+- Retain explicit deferred orders until native docking accepts them; restore
+  them on a new session and preserve explicit cancellation.
+- Reconstruct map/holomap arrival links, QUEUE/HOLD/LAND/TAXI statuses and counts
+  from host state after reload. Add three-arrival and missing-queue regressions.
 - Replace the flat menu with a numbered two-by-two hangar overview, selected
   aircraft status and separate loadout, launch and landing actions.
 - Fit hardpoint/weapon pages to small monitors, wrap long names, mark fitted
