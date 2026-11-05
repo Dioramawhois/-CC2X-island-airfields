@@ -67,10 +67,11 @@ function imgui_vehicle_chassis_loadout(adapter,vehicle)
  for _,row in ipairs(get_ui_vehicle_chassis_attachments(vehicle))do
   adapter:begin_nav_row()
   for _,point in ipairs(row)do
-   local x,y=cx+28+point.x,window.cy+27+point.y
-   local hovered,selected=adapter:hoverable(x,y,8,10,true)
+   local height=point.i==8 and 32 or 10
+   local x,y=cx+28+point.x,window.cy+32-height/2+point.y
+   local hovered,selected=adapter:hoverable(x,y,8,height,true)
    hardpoint_hitboxes[#hardpoint_hitboxes+1]={slot=point.i,x=x,y=y}
-   update_ui_rectangle(x,y,8,10,selected and color8(55,78,84,255)or color8(24,34,40,255))
+   update_ui_rectangle(x,y,8,height,selected and color8(55,78,84,255)or color8(24,34,40,255))
   end
   adapter:end_nav_row(0)
  end

@@ -377,7 +377,7 @@ local function schematic(v,y,enabled)
     function adapter:end_nav_row()window.index_y=window.index_y+1 end
     function adapter:hoverable(x,py,w,h)
         next_point=next_point+1;local point=points[next_point]
-        if not point or x<0 or py<y or x+w>frame.w or py+h>y+64 then return false,false end
+        if not point or x<0 or py<18 or x+w>frame.w or py+h>94 then return false,false end
         local slot=point.i
         local _,focused=control(x,py,w,h,enabled,function()
             ui.attachment=slot;ui.point=slot;ui.mode='loadout';ui.page=0;ui.focus=1;ui.message=nil;ui.choice=nil
@@ -388,7 +388,9 @@ local function schematic(v,y,enabled)
     end
     -- Call the existing carrier widget against this owned input adapter. Its
     -- sprites, hardpoint geometry, equipment icons and supply bars stay native.
-    update_ui_push_clip(0,y,frame.w,64)
+    -- Large hardpoints may extend beyond the 64px chassis image. Give the
+    -- native widget its full envelope while keeping the caption/actions clear.
+    update_ui_push_clip(0,18,frame.w,76)
     imgui_vehicle_chassis_loadout(adapter,v)
     update_ui_pop_clip()
     if ui.point==nil and points[1]then ui.point=points[1].i end
@@ -465,11 +467,10 @@ local function panel()
         text(8,frame.h-footer+2,message,frame.w-16,muted,compact and 1 or 2)
     else
         local action_h=compact and 18 or 24;local action_y=frame.h-action_h-2
-        local graph_y=30
+        local graph_y=26
         local show_diagram=ui.mode=='aircraft' or not compact
         if show_diagram then schematic(v,graph_y,equipment(v))end
         if ui.mode=='aircraft'then
-            text(8,20,'Select a hardpoint',frame.w-16,muted)
             local selected=ui.point
             local description='No configurable hardpoints'
             if selected~=nil then
@@ -489,7 +490,7 @@ local function panel()
             end
         else
             local choices,current=options(v)
-            text(8,20,ui.message or 'EQUIPMENT / FREE',frame.w-16,muted)
+            text(8,compact and 20 or 100,ui.message or 'EQUIPMENT / FREE',frame.w-16,muted)
             local grid_y=compact and 34 or 112;local cell=24;local gap=4
             local columns=math.max(1,math.floor((frame.w-16+gap)/(cell+gap)))
             local rows=compact and 1 or math.max(1,math.min(2,math.floor((action_y-grid_y-62)/(cell+gap))))

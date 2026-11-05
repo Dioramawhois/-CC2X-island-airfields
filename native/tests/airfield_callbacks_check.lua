@@ -49,7 +49,7 @@ local function click_icon(icon)
  error('No equipment image '..icon)
 end
 local function is_diagram()
- return has('Select a hardpoint') and not has('Land aircraft') and diagram_calls>0
+ return has('Current:') and not has('Land aircraft') and diagram_calls>0
 end
 g_pointer_pos_x,g_pointer_pos_y=120,60;frame()
 input_event(e_input.pointer_1,1);input_event(e_input.pointer_1,0);frame()
