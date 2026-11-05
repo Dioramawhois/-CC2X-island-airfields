@@ -1,4 +1,4 @@
-# Runway entry approach: unreleased source candidate
+# Runway entry approach: 2.1.2 client beta 1
 
 The optional Island Airfields Lua policy guides a fixed-wing aircraft through
 its landing circuit after the native landing queue hands it over. An oblique
@@ -62,9 +62,15 @@ A separate far-queue case remains under native control and cancellable. The
 they do not model the game's complete terrain, aerodynamics, collision or
 network behavior.
 
-No game process, Workshop package or installed mod is changed by these tests.
-Fresh manual acceptance is required before publishing a new gameplay release.
-Check oblique arrivals from both sides, a runway approached in each direction,
-an already aligned aircraft, runway contention and cancellation. Observe the
-aircraft trajectory as well as the map marker; the marker remains an island
-selector.
+The offline tests do not change a game process, Workshop package or installed
+mod. Separately, the owner tested 2.1.2 in a fresh ordinary-host session and
+confirmed that the oblique arrival now joins the approach before the runway.
+That confirms the reported route correction. It does not establish every
+terrain/physics case, complete touchdown/service/relaunch acceptance for this
+exact release, remote-client multiplayer or dedicated-server support.
+
+Further acceptance should cover both sides, a runway approached in each
+direction, an already aligned aircraft, runway contention and cancellation.
+Observe the aircraft trajectory as well as the map marker; the marker remains
+an island selector. Native queued guidance beyond six kilometres and deferred
+orders for unstreamed islands retain their existing behavior.

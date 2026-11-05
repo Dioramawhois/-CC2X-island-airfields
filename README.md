@@ -1,13 +1,14 @@
 # Island Airfields
 
-**2.1.2-client-beta.1** is a local runway-entry test candidate for stock Carrier Command 2 and
+**2.1.2-client-beta.1** is a separate Lua addon for stock Carrier Command 2 and
 **Revolution 1.6-19 and 1.6-20**. It requires **CC2X SDK 0.8.1-client-beta.1**. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
-The published release is [2.1.1-client-beta.1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.1-client-beta.1).
-This candidate changes the first assisted approach target and requires a fresh
-in-game check before publication. See [Runway approach](docs/RUNWAY_APPROACH.md).
+Download [2.1.2-client-beta.1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.1.2-client-beta.1).
+Fixed-wing arrivals now join the outer runway approach circuit first. The owner
+confirmed the corrected oblique approach in an ordinary-host game.
+See [Runway approach](docs/RUNWAY_APPROACH.md) for the remaining boundaries.
 
 Aircraft land on owned island airfields, receive hangar service and launch on a
 new order. The host runs the flight policy through public SDK APIs. The mod has
@@ -41,15 +42,18 @@ and other carriers' traffic. [Compatibility design and evidence](docs/REVOLUTION
 
 ## Validation scope
 
-The unreleased runway-entry source candidate and its separate validation limits
-are described in [Runway approach](docs/RUNWAY_APPROACH.md).
+The runway-entry change passes 12 complete synthetic flight cases through the
+actual SDK Host and real Lua. The owner also confirmed the corrected oblique
+approach in a fresh ordinary-host game. These are separate validation levels;
+see [Runway approach](docs/RUNWAY_APPROACH.md).
 
 The owner accepted ordinary-host airfield behavior in the earlier integration
 prototype and reported its carrier-status defect. The fix has real-Lua synthetic
 coverage. The separate addon passes actual-SDK source transformation and syntax
 checks for stock/Revolution, plus host-policy and UI fixtures. These checks do
-not certify fresh separate-addon gameplay, a second remote client, dedicated
-servers or arbitrary screen modifications.
+not certify every terrain/physics case, a second remote client, dedicated
+servers or arbitrary screen modifications. Full touchdown/service/relaunch
+acceptance for this exact release remains separate from the confirmed approach.
 
 ## Developer build
 

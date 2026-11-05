@@ -1,6 +1,8 @@
-Island Airfields 2.1 is out.
+Island Airfields 2.1.2 - improved runway entry
 
 Island Airfields is now a separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together. No Revolution files or complete game screens are included. Carrier deck status excludes island landings.
+
+Fixed-wing arrivals now join the outer runway approach circuit first. The owner confirmed the corrected oblique approach in an ordinary-host game. Native queued guidance beyond six kilometres and orders waiting for runway geometry to stream retain their existing behavior.
 
 Requires CC2X SDK 0.8.1 client beta 1:
 https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670
@@ -10,4 +12,4 @@ With the game closed, copy the SDK's dinput8.dll beside carrier_command.exe. Ena
 Screenshots and installation diagram:
 https://github.com/Dioramawhois/-CC2X-island-airfields/blob/main/workshop/installation/README.md
 
-Earlier host gameplay was tested; new separate delivery passed offline checks. Fresh gameplay, remote-client and dedicated acceptance remain unverified.
+Twelve synthetic full-flight cases and 18 Python checks pass. The approach correction also received the owner check above; complete touchdown/service/relaunch acceptance for this exact release, remote-client and dedicated acceptance remain separate and unverified.

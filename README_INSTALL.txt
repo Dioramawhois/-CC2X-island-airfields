@@ -1,7 +1,8 @@
-Island Airfields 2.1.2 client beta 1 - local runway-entry test candidate
+Island Airfields 2.1.2 client beta 1
 
-Steam and the public release currently contain 2.1.1 client beta 1. This local
-candidate requires a fresh in-game approach check before publication.
+Fixed-wing arrivals now join the outer runway approach circuit first. The owner
+confirmed the corrected oblique approach in an ordinary-host game. Existing
+CC2X SDK 0.8.1 installations need no runtime replacement for this update.
 
 Requires CC2X SDK 0.8.1 client beta 1 and the reviewed Windows CC2 1.5.18-r2 client.
 Subscribe to Island Airfields and the CC2X SDK Workshop item 3833014670.
@@ -21,7 +22,9 @@ Launch: give a parked aircraft a new waypoint away from the island.
 Cancel a landing: give a new order before touchdown.
 
 The earlier integration prototype passed user-reported ordinary-host checks.
-The new separate delivery passed actual-SDK syntax/source checks and owned
-synthetic gameplay/UI tests; its fresh gameplay acceptance remains unverified.
+The separate delivery passed actual-SDK syntax/source checks and owned
+synthetic gameplay/UI tests. The corrected oblique approach was confirmed in
+a fresh ordinary-host game; complete touchdown/service/relaunch acceptance for
+this exact release remains separate from that approach check.
 Remote-client replication and dedicated-server acceptance are unverified.
 The mod contains Lua/content only. The shared SDK is installed separately.

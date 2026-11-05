@@ -1,8 +1,9 @@
-[h1]Island Airfields 2.1 - Separate Revolution Addon[/h1]
+[h1]Island Airfields 2.1.2 - Separate Revolution Addon[/h1]
 Planes and helicopters can land on owned island airfields, receive hangar service and launch on a new order.
 
 [h2]What's new[/h2]
 [list]
+[*]Fixed-wing arrivals join the outer runway approach circuit first, using the selected runway's real geometry. The corrected oblique approach was confirmed in an ordinary-host test.
 [*]A separate addon for stock CC2 and Revolution 1.6-19/1.6-20. Enable the original Revolution mod and Island Airfields together.
 [*]No Revolution files, complete game screens or private gameplay DLL are included.
 [*]SDK 0.8.1 applies our small, version-checked screen changes in memory. Installed and Workshop files stay untouched.
@@ -18,7 +19,7 @@ Planes and helicopters can land on owned island airfields, receive hangar servic
 [/olist]
 With Revolution, also subscribe to [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110]the original Revolution 1.6[/url] and enable [b]both mods[/b]. No combined repack is required. Without Revolution, enable Island Airfields normally.
 
-Required runtime: [b]CC2X SDK 0.8.1-client-beta.1[/b]. Older SDKs lack the required combined capabilities. Workshop downloads do not automatically replace a manually copied DLL. ModLoader must explicitly support this exact runtime before automatic installation.
+Required runtime: [b]CC2X SDK 0.8.1-client-beta.1[/b]. Existing matching installations need no runtime replacement for 2.1.2. Older SDKs lack the required combined capabilities. Workshop downloads do not automatically replace a manually copied DLL. ModLoader must explicitly support this exact runtime before automatic installation.
 [url=https://github.com/Dioramawhois/-CC2X-island-airfields/blob/main/workshop/installation/README.md]Installation guide with screenshots[/url]
 
 [h2]How to play[/h2]
@@ -31,7 +32,9 @@ Owned airfields are marked immediately in team colour. Planes and helicopters ar
 Revolution's holomap routes the carrier; its aircraft menu offers camera and airlift actions.
 
 [h2]Beta scope[/h2]
-Windows, reviewed CC2 1.5.18-r2 and Revolution 1.6-19/1.6-20 screen profiles. Unknown screen versions are skipped and logged. Ordinary-host gameplay was accepted in the earlier integration prototype. The new separate delivery passes actual-SDK source/syntax checks and synthetic gameplay/UI fixtures; fresh separate-addon gameplay, a second remote client and dedicated servers remain unverified.
+Windows, reviewed CC2 1.5.18-r2 and Revolution 1.6-19/1.6-20 screen profiles. Unknown screen versions are skipped and logged. The owner confirmed the corrected oblique approach in a fresh ordinary-host game. Twelve complete synthetic flight cases through the actual SDK Host and real Lua pass separately. Full touchdown/service/relaunch acceptance for this exact release, broader terrain/physics coverage, a second remote client and dedicated servers remain unverified.
+
+The route improvement starts when the Lua flight policy takes over. Native queued guidance beyond six kilometres and deferred orders while runway geometry is not streamed retain their existing behavior and may still point toward the island's map anchor.
 
 Include SDK/game versions, enabled mods, reproduction steps and cc2x.log with reports.
 [url=https://github.com/Dioramawhois/-CC2X-island-airfields]Source and compatibility details[/url]
