@@ -236,7 +236,10 @@ function M.new(cc2, settings)
             if s>.6*fin and abs(lat)<.3*s and abs(wrap(yl-f.yaw))<.8 then phase(f,'final');return end
             if f.side==0 then f.side=lat>=0 and 1 or -1 end
             if s>-400 and s<fin-300 and abs(lat-f.side*width)<350 and abs(wrap(yl+pi-f.yaw))<.6 then phase(f,'downwind');return end
-            t=point(r,-300,f.side*width);rate=steer(f,a,t,.14)
+            -- Join the outer approach circuit first. The old near-field
+            -- target beyond the threshold made oblique arrivals head toward
+            -- the island before flying back out to downwind/base/final.
+            t=point(r,fin+600,f.side*width);rate=steer(f,a,t,.14)
             if length(t[1]-a.w[1],t[3]-a.w[3])<300 then phase(f,'downwind') end
         elseif f.phase=='downwind' then
             t=point(r,min(s+800,fin+600),f.side*width);rate=steer(f,a,t,.14);if s>=fin then phase(f,'base') end

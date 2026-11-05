@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.2-client-beta.1 (2026-11-05)
+
+- Guide an oblique fixed-wing arrival toward the outer runway approach circuit
+  first, instead of a point beside the island before flying back out to enter
+  the circuit. Derive the target from the real runway endpoints and selected
+  landing direction. Preserve the existing aligned-final shortcut.
+- Keep native queue distance, streaming deferral, runway reservations, ordinary
+  order cancellation, helicopter policy and takeoff behavior unchanged. This is
+  independent Lua mod policy and requires no SDK or native binary change.
+- Add 12 owned actual-SDK full-flight regressions for approach targets and
+  convergence. The owner confirmed the corrected oblique approach in a fresh
+  ordinary-host game. Broader terrain/physics, remote-client and dedicated-server
+  acceptance remain unverified; see `docs/RUNWAY_APPROACH.md` for its boundaries.
+
 ## 2.1.1-client-beta.1 (2026-11-05)
 
 - Restore the vehicle-control landing-order integration for Revolution 1.6-20.

@@ -1,6 +1,6 @@
 # Revolution compatibility: separate addon
 
-Island Airfields **2.1.1-client-beta.1** is a separate package for the
+Island Airfields **2.1.x** is a separate package for the
 original **Revolution 1.6-19 or 1.6-20**, using **CC2X SDK 0.8.1-client-beta.1**.
 
 Enable both mods. Island Airfields does not include, replace or redistribute

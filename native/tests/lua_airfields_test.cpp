@@ -30,7 +30,13 @@ struct Vehicle {
     int team=1,dock=0,flight=2,attached=0,dockVehicle=0,dockTile=0,dockAirfield=-1,mode=0,taxi=0;
     double speed=0,power=1,target[3]{};cc2x_body body{};std::vector<Waypoint> waypoints;
 };
-struct Airfield {int runway=-1,state=0,mode=0;std::vector<std::uint32_t> hangars{0,0,0,0},landing,takeoff;};
+struct Airfield {
+    int runway=-1,state=0,mode=0;
+    std::vector<std::uint32_t> hangars{0,0,0,0},landing,takeoff;
+    double origin[3]{0,0,0},yaw=0;
+    double start[3]{75,0,-140},end[3]{-150,0,-140};
+    bool reverseTerrain=false;
+};
 struct Tile {std::uint32_t id=7;int team=1;bool loaded=true;};
 std::vector<Vehicle> vehicles;Airfield af;Tile tile;int island,server;
 std::wstring project;std::vector<std::string> logs;int publications=0,bodyWrites=0;
@@ -98,9 +104,11 @@ std::int64_t GetI(const void* object,int field,int index){if(auto* list=List(obj
 double GetF(const void* object,int field,int index){if(auto* v=V(object)){if(field==CC2X_VEHICLE_POS)return v->body.pos[index];
     if(field==CC2X_VEHICLE_CONTROL_TARGET)return v->target[index];if(field==CC2X_VEHICLE_CONTROL_SPEED)return v->speed;if(field==CC2X_VEHICLE_CONTROL_POWER)return v->power;
     if(field==CC2X_VEHICLE_WHEEL_CONTACT)return index>0&&v->body.pos[1]<=1.05?1:0;}
-    if(object==&af){if(field==CC2X_AIRFIELD_RUNWAY_START)return index==0?75:index==2?-140:0;
-    if(field==CC2X_AIRFIELD_RUNWAY_END)return index==0?-150:index==2?-140:0;
-    if(field==CC2X_AIRFIELD_TRANSFORM)return index==0||index==4||index==8?1:0;}
+    if(object==&af){if(field==CC2X_AIRFIELD_RUNWAY_START)return af.start[index];
+    if(field==CC2X_AIRFIELD_RUNWAY_END)return af.end[index];
+    if(field==CC2X_AIRFIELD_TRANSFORM){if(index>=9&&index<12)return af.origin[index-9];
+        if(index==0||index==8)return std::cos(af.yaw);if(index==4)return 1;
+        if(index==2)return -std::sin(af.yaw);if(index==6)return std::sin(af.yaw);return 0;}}
     return 0;}
 int SetI(void* object,int field,int index,std::int64_t value){if(auto* list=List(object,field)){if(index<0||static_cast<std::size_t>(index)>=list->size())return 0;(*list)[index]=static_cast<std::uint32_t>(value);return 1;}
     if(auto* v=V(object)){switch(field){case CC2X_VEHICLE_DOCK_STATE:v->dock=static_cast<int>(value);break;case CC2X_VEHICLE_FLIGHT_STATE:v->flight=static_cast<int>(value);break;
@@ -118,14 +126,29 @@ int BodyGet(const void* object,cc2x_body* out){auto* v=V(object);if(!v||!out)ret
 int BodySet(void* object,const cc2x_body* in,int mask){auto* v=V(object);if(!v||!in)return 0;
     if(mask&CC2X_BODY_POS)std::copy_n(in->pos,3,v->body.pos);if(mask&CC2X_BODY_ROT)std::copy_n(in->rot,4,v->body.rot);
     if(mask&CC2X_BODY_VEL)std::copy_n(in->vel,3,v->body.vel);if(mask&CC2X_BODY_SPIN)std::copy_n(in->spin,3,v->body.spin);++bodyWrites;return 1;}
-int Raycast(const double* from,const double* direction,double distance,int,cc2x_hit* hit){if(direction[1]>=0||from[1]<0||from[1]>distance)return 0;
-    *hit={};hit->pos[0]=from[0];hit->pos[2]=from[2];hit->normal[1]=1;hit->distance=from[1];return 1;}
+double Terrain(double x,double z) {
+    if(!af.reverseTerrain)return 0;
+    const double dx=af.end[0]-af.start[0],dz=af.end[2]-af.start[2],length=std::hypot(dx,dz);
+    // Owned raycast-only ridge beyond the original threshold selects the
+    // opposite approach. The selected approach and runway remain flat.
+    return ((x-af.start[0])*dx+(z-af.start[2])*dz)/length < -400 ? 120 : 0;
+}
+int Raycast(const double* from,const double* direction,double distance,int,cc2x_hit* hit){
+    const double height=Terrain(from[0],from[2]);
+    if(direction[1]>=0||from[1]<height||from[1]-height>distance)return 0;
+    *hit={};hit->pos[0]=from[0];hit->pos[1]=height;hit->pos[2]=from[2];hit->normal[1]=1;
+    hit->distance=from[1]-height;return 1;}
 void Gear(void*,int){}void Brakes(void*,float,float){}
 void Sync(void*){++publications;}
 int Landing(void* object,void* vehicle){auto* v=V(vehicle);if(object!=&island||!v)return 0;v->dock=CC2X_DOCK_QUEUED;af.landing.push_back(v->id);return 1;}
 void* TileAt(double,double){return &tile;}
-void Transform(const void*,const double* local,double* world){std::copy_n(local,3,world);}
-int Bay(const void*,int slot,double* pos,double* yaw){if(slot<0||slot>3)return 0;if(pos){pos[0]=slot&1?20:-20;pos[1]=0;pos[2]=slot&2?20:-20;}if(yaw)*yaw=slot&1?-1.5707963267948966:1.5707963267948966;return 1;}
+void Transform(const void*,const double* local,double* world){
+    const double c=std::cos(af.yaw),s=std::sin(af.yaw);
+    world[0]=af.origin[0]+c*local[0]+s*local[2];world[1]=af.origin[1]+local[1];
+    world[2]=af.origin[2]-s*local[0]+c*local[2];}
+int Bay(const void*,int slot,double* pos,double* yaw){if(slot<0||slot>3)return 0;
+    if(pos){double local[3]{slot&1?20.0:-20.0,0,slot&2?20.0:-20.0};Transform(&af,local,pos);}
+    if(yaw)*yaw=af.yaw+(slot&1?-1.5707963267948966:1.5707963267948966);return 1;}
 void Reset(bool wing=false,int n=1){vehicles.assign(n,{});af=Airfield{};tile=Tile{};publications=bodyWrites=0;
     for(int i=0;i<n;++i){auto& v=vehicles[i];v.id=17u+i;v.wing=wing;v.body.pos[0]=wing?3000:500;v.body.pos[1]=wing?300:150;v.body.pos[2]=wing?-140:0;v.body.vel[0]=wing?-70:0;v.body.rot[3]=1;}}
 void CheckErrors(Host& host){Require(host.Stats().errors==0,"Lua callback failed");for(auto& s:logs)Require(s.find("MODULE_LOAD_ERROR")==std::string::npos,"Lua module failed initialization");}
@@ -137,6 +160,94 @@ void DispatchOrder(Host& host,std::size_t index) {
 }
 void Order(Host& host,int type=CC2X_WAYPOINT_BARGE_LOAD_TILE,int param=7){vehicles[0].waypoints={{type,param}};int before=publications;DispatchOrder(host,0);
     Require(publications==before,"Incoming order was published twice");Sync(&vehicles[0]);}
+struct RunwayFrame {double x,z,ax,az;};
+RunwayFrame Frame(bool reverse) {
+    const double* first=reverse?af.end:af.start;
+    const double* last=reverse?af.start:af.end;
+    const double dx=last[0]-first[0],dz=last[2]-first[2],length=std::hypot(dx,dz);
+    return {first[0],first[2],dx/length,dz/length};
+}
+double Along(const RunwayFrame& r,const double* point) {
+    return -((point[0]-r.x)*r.ax+(point[2]-r.z)*r.az);
+}
+double Lateral(const RunwayFrame& r,const double* point) {
+    return -(point[0]-r.x)*r.az+(point[2]-r.z)*r.ax;
+}
+void Geometry(double x,double z,double yaw,bool reverse) {
+    af.origin[0]=x;af.origin[2]=z;af.yaw=yaw;af.reverseTerrain=reverse;
+    const double a[3]{75,0,-140},b[3]{-150,0,-140};
+    Transform(&af,a,af.start);Transform(&af,b,af.end);
+}
+void PlaceArrival(const RunwayFrame& r,double s,double lateral,double heading) {
+    auto& v=vehicles[0];
+    v.body.pos[0]=r.x-s*r.ax-lateral*r.az;v.body.pos[1]=300;
+    v.body.pos[2]=r.z-s*r.az+lateral*r.ax;
+    const double yaw=std::atan2(r.ax,r.az)+heading;
+    v.body.vel[0]=std::sin(yaw)*70;v.body.vel[1]=0;v.body.vel[2]=std::cos(yaw)*70;
+}
+void FinishArrival(Host& host,const char* label) {
+    int ticks=0;
+    while(vehicles[0].dock!=CC2X_DOCK_DOCKED&&ticks<24000){Step(host);++ticks;}
+    if(vehicles[0].dock!=CC2X_DOCK_DOCKED) {
+        std::cerr<<"Nonconvergent approach "<<label<<" dock="<<vehicles[0].dock
+                 <<" position="<<vehicles[0].body.pos[0]<<","<<vehicles[0].body.pos[2]
+                 <<" target="<<vehicles[0].target[0]<<","<<vehicles[0].target[2]<<"\n";
+        throw std::runtime_error(std::string("Approach did not converge: ")+label);
+    }
+    std::cout<<"PASS full owned approach "<<label<<" ticks="<<ticks<<"\n";
+}
+void CheckObliqueRunwayEntry(Host& host) {
+    constexpr double pi=3.14159265358979323846,width=2*75/.14;
+    struct Case {const char* label;double x,z,yaw;bool reverse;double side,heading;bool gate;};
+    const Case cases[]{
+        {"oblique-positive",0,0,0,false,1,0,false},
+        {"translated-rotated-oblique-negative",18000,-23000,.7,false,-1,0,false},
+        {"translated-rotated-reversed-oblique",-21000,17000,-.9,true,1,0,false},
+        {"outer-gate-positive-landward",0,0,0,false,1,0,true},
+        {"outer-gate-positive-away",0,0,0,false,1,pi,true},
+        {"outer-gate-positive-perpendicular",0,0,0,false,1,pi/2,true},
+        {"outer-gate-negative-landward",9000,14000,.4,false,-1,0,true},
+        {"outer-gate-negative-away",9000,14000,.4,false,-1,pi,true},
+        {"outer-gate-negative-perpendicular",9000,14000,.4,false,-1,-pi/2,true},
+        {"outer-gate-reversed-away",-15000,-12000,-.6,true,-1,pi,true},
+    };
+    for(const auto& test:cases) {
+        host.Session(&server,false);Reset(true);Geometry(test.x,test.z,test.yaw,test.reverse);
+        const auto runway=Frame(test.reverse);
+        PlaceArrival(runway,3000,test.side*(test.gate?width:3000),test.heading);
+        host.Session(&server,true);Step(host);Order(host);Step(host);
+        Require(vehicles[0].dock==CC2X_DOCK_DOCKING&&vehicles[0].mode==3&&bodyWrites>0,
+                "Approach was not under the optional Lua flight policy");
+        if(!test.gate) {
+            const double along=Along(runway,vehicles[0].target),lateral=Lateral(runway,vehicles[0].target);
+            std::cout<<"Approach first target "<<test.label<<" along="<<along<<" lateral="<<lateral<<"\n";
+            Require(along>2500&&along<4000,"Oblique arrival targeted the runway/island center before its outer entry");
+            Require(std::abs(lateral-test.side*width)<.01,"Entry target ignored selected runway direction or arrival side");
+            Require(std::hypot(vehicles[0].target[0]-af.origin[0],vehicles[0].target[2]-af.origin[2])>2000,
+                    "Entry target follows the airfield origin instead of runway-relative geometry");
+        }
+        FinishArrival(host,test.label);
+    }
+    for(bool reverse:{false,true}) {
+        host.Session(&server,false);Reset(true);Geometry(13000,-17000,1.1,reverse);
+        const auto runway=Frame(reverse);PlaceArrival(runway,3000,0,0);
+        host.Session(&server,true);Step(host);Order(host);Step(host,2);
+        Require(vehicles[0].dock==CC2X_DOCK_DOCKING&&vehicles[0].mode==3&&bodyWrites>0,
+                "Already aligned arrival did not capture final approach");
+        Require(std::abs(Lateral(runway,vehicles[0].target))<.01&&Along(runway,vehicles[0].target)>0,
+                "Already aligned arrival was diverted to the lateral outer gate");
+        FinishArrival(host,reverse?"aligned-reversed":"aligned-normal");
+    }
+    // This patch must not silently broaden queue takeover before the existing
+    // 6 km limit or command an unstreamed runway whose geometry is unavailable.
+    host.Session(&server,false);Reset(true);const auto distantFrame=Frame(false);
+    PlaceArrival(distantFrame,8000,1000,0);host.Session(&server,true);Step(host);Order(host);Step(host,10);
+    Require(vehicles[0].dock==CC2X_DOCK_QUEUED&&vehicles[0].mode==0&&bodyWrites==0&&af.landing.size()==1,
+            "Far queued arrival changed the existing takeover boundary");
+    Order(host,CC2X_WAYPOINT_MOVE,0);Step(host);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED&&af.landing.empty(),"Far queued arrival did not remain cancellable");
+    host.Session(&server,false);Reset();host.Session(&server,true);Step(host);
+}
 }
 int main(int argc,char** argv){try{
     Require(argc==2,"Expected project path");project=fs::absolute(argv[1]).wstring();
@@ -152,6 +263,7 @@ int main(int argc,char** argv){try{
     Require(host.WorldEvent("island_spawn",7,0,0,1,true)==0,"Human garrison was not excluded");
     Require(host.WorldEvent("island_spawn",7,1,0,1,true)==1,"AI garrison changed");
     host.Session(&server,true);Step(host);Require(host.Stats().modules==1,"Lua module did not load");
+    CheckObliqueRunwayEntry(host);
     vehicles[0].waypoints={{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};host.WorldEvent("waypoints",vehicles[0].id);
     Require(vehicles[0].dock==0&&vehicles[0].waypoints[0].type==CC2X_WAYPOINT_MOVE,"Unattributed command was accepted");
     // Deferred order replaced before the island loads.
