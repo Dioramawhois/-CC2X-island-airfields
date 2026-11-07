@@ -21,7 +21,7 @@ labelled and cannot open another aircraft. Narrow cards use the stock chassis
 symbol and abbreviation; larger cards use the chassis image. Arrival counts
 remain visible separately from parked aircraft.
 
-The pending parking-display fix removes fully docked island aircraft from the
+The 2.2.1 parking-display update removes fully docked island aircraft from the
 vehicle-control map, pointer targeting and deployed overview. Revolution's
 aircraft sidebar, unit wall and box selection apply the same check. A parked
 aircraft remains accessible through its airfield bay for loadout changes and

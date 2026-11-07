@@ -1,5 +1,10 @@
-[h1]Island Airfields 2.2 - Graphical Airfield Loadouts[/h1]
+[h1]Island Airfields 2.2.1 - Parked Aircraft Display[/h1]
 Land, refit and launch aircraft from owned island airfields. Separate addon for stock CC2 and Revolution 1.6-19/1.6-20.
+
+[h2]Parked aircraft belong in the airfield[/h2]
+After completing landing, island aircraft no longer appear as active aircraft on the vehicle-control map. Open the airfield icon to find them in their four hangar bays, change equipment and launch them again. Landing queues remain visible; aircraft reappear when launch begins. Revolution aircraft sidebars, unit walls, pointer targeting and box selection follow the same parking check. The native holomap background is unchanged.
+
+[b]No additional SDK DLL update is required for this fix if your current installation already supports graphical refitting.[/b]
 
 [h2]Four bays, direct aircraft selection[/h2]
 Click the airfield icon, then a parked aircraft in one of its [b]four numbered hangar bays[/b]. Its loadout opens directly using the [b]same graphical aircraft/hardpoint widget as the carrier[/b]. Select a point on the aircraft picture and choose compatible equipment by its icon. The focused option has a readable name; fitted equipment is marked. Back returns to the aircraft, then to the airfield.
@@ -22,12 +27,12 @@ Landing targets remain in native saved data. The host restores arrivals after lo
 [h2]Install or update[/h2]
 [olist]
 [*]Subscribe to Island Airfields and [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670]CC2X SDK[/url]. Wait for Steam to finish downloading both.
-[*]Close the game. Install the matching [b]SDK 0.9.0-dev preview[/b] by copying its [b]content/dinput8.dll[/b] beside [b]carrier_command.exe[/b]. Keep a backup of an identified older CC2X runtime; check compatibility before replacing another loader.
+[*]Close the game. For a first installation, install the current [b]CC2X SDK[/b] by copying its [b]content/dinput8.dll[/b] beside [b]carrier_command.exe[/b]. Keep a backup of an identified older CC2X runtime; check compatibility before replacing another loader.
 [*]Enable Island Airfields and restart. With Revolution, enable [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110]original Revolution[/url] too.
 [/olist]
-[b]SDK 0.8.1 cannot refit equipment.[/b] Workshop downloads do not replace manually installed DLLs. Automatic installation requires a ModLoader release explicitly supporting this exact runtime; otherwise use the manual route above.
-[url=https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/tag/0.9.0-dev]Matching SDK, source and checksums[/url]
-[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.0-client-beta.5]Island Airfields release and source[/url]
+[b]SDK 0.8.1 cannot refit equipment.[/b] Existing compatible SDK installations can be kept for this parking-display update. For first installation and later SDK updates, we recommend [url=https://github.com/Dioramawhois/CC2-ModLoader/releases/tag/latest-beta]CC2 ModLoader[/url], which installs supported SDK versions. Workshop downloads alone do not replace manually installed DLLs.
+[url=https://github.com/Dioramawhois/Carrier-Command-2-extender/releases]SDK releases, source and checksums[/url]
+[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.1-client-beta.1]Island Airfields release and source[/url]
 
 [h2]Client beta scope[/h2]
 Windows, reviewed CC2 1.5.18-r2 and stock/Revolution 1.6-19/1.6-20 screen profiles. The owner tested ordinary-host gameplay, explicitly confirmed three-arrival save/reload and equipment changes, and approved the graphical UX update for release. Real-Lua UI/flight/queue and packaging checks pass separately.

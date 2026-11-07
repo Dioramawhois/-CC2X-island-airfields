@@ -1,12 +1,18 @@
 # Island Airfields
 
-**2.2.0-client-beta.5** is the client beta release of the separate Lua addon for stock Carrier Command 2 and
-**Revolution 1.6-19 and 1.6-20**. Free loadout changes require the matching **CC2X 0.9.0-dev preview**. Workshop
+**2.2.1-client-beta.1** is the client beta release of the separate Lua addon for stock Carrier Command 2 and
+**Revolution 1.6-19 and 1.6-20**. Loadout changes require **CC2X equipment support**. The parking-display update
+does not require a new SDK DLL. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
-[Download 2.2 client beta 5](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.0-client-beta.5)
-with the [matching SDK preview](https://github.com/Dioramawhois/Carrier-Command-2-extender/releases/tag/0.9.0-dev).
+[Download 2.2.1 client beta 1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.1-client-beta.1)
+with [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
+
+Fully parked island aircraft disappear from the vehicle-control map and active
+unit lists, while remaining available through their airfield bays. Aircraft
+waiting to land stay visible; departing aircraft reappear when launch begins.
+The native holomap background is unchanged.
 
 Click the airfield icon for four aircraft bays, then click a parked aircraft to
 open its loadout directly. Select hardpoints on the **same graphical widget used
@@ -26,10 +32,10 @@ gameplay DLL and contains no Revolution files or complete game screens.
 
 ## Install
 
-This update requires the exact matching SDK preview. SDK 0.8.1 cannot replace
-equipment. With the game closed, update a manually installed SDK DLL as described
-below; a Workshop download does not replace it automatically. Preserve a backup.
-
+An existing compatible SDK installation can be kept for this update. Equipment
+changes require the equipment API introduced in SDK 0.9.0-dev; SDK 0.8.1 cannot
+refit aircraft. For a first installation, use the current published SDK and
+follow the installation instructions below.
 
 Subscribe to Island Airfields and [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
 With the game closed, copy the SDK's `content/dinput8.dll` beside

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.2.1-client-beta.1 (2026-11-07)
 
 - Hide aircraft parked at island airfields from the vehicle-control map,
   pointer targeting and deployed-unit overview. Revolution's aircraft sidebar,
