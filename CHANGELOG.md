@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.2.2-client-beta.1 (2026-11-08)
+
+- Anchor aircraft landing waypoint markers and route lines to the actual airfield
+  icon. The native serialized island token previously displayed at the island
+  centre; ordinary moves, barge routes and carrier targets retain their positions.
+- Use the complete airfield silhouette and black edge for hover and landing
+  drops, including the nose above the existing seven-pixel anchor hit area.
+- Read Revolution's wrapper markers with raw table access. Native map views
+  that reject unknown fields no longer throw during parked-selection cleanup
+  before the ordinary drag/update path can run.
+- Contain parking-display inspection failures: keep the native icon/drag and
+  continue the original update, with one local diagnostic per screen VM.
+- Restore the accepted aircraft-body landing gesture: dragging the aircraft
+  onto an airfield replaces its previous route. Dragging a route point onto
+  an airfield keeps its prefix and earlier attack orders, then lands.
+- Resolve the airfield under the pointer at the input event using the current
+  marker geometry. A previous frame's hover cannot redirect landing to another
+  island or consume an ordinary map click after the pointer moves away.
+- Start landing only when the explicit landing waypoint reaches the head of
+  the route. Restore future landings after save/reload; show them as ROUTE
+  instead of drawing an immediate approach line.
+- Show parked aircraft in a fixed 2x2 bay grid of owned 6-pixel dark-grey model
+  glyphs, to the left of the airfield marker. The full grid including its edge
+  is only 15x15 pixels; empty bays keep their place. Hovering names the model.
+  No occupancy number is added. Queue reservations, taxi, departed aircraft,
+  duplicate IDs and stale unloaded hangar snapshots do not add silhouettes.
+- Retain the existing equipment-capable SDK; no new SDK DLL is required for
+  this update. The owner accepted the candidate in an ordinary combined
+  CC2 ModLoader run with eight enabled mods and SDK 0.11, then authorized
+  release. Remote-client, dedicated-server and never-streamed-marker limits
+  remain unchanged. Owned Lua, SDK and screen-delivery checks are separate
+  offline evidence.
+
 ## 2.2.1-client-beta.1 (2026-11-07)
 
 - Hide aircraft parked at island airfields from the vehicle-control map,

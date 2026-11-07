@@ -299,6 +299,33 @@ void CheckLandingReload(Host& host) {
     host.Session(&server,false);Reset();host.Session(&server,true);Step(host);
     std::cout<<"PASS three-aircraft save-field round trip, missing queue repair, all arrivals parked, deferred reload/stream and cancellation (synthetic engine, not native serialization)\n";
 }
+void CheckRouteLandingQueue(Host& host) {
+    host.Session(&server,false);Reset(true);host.Session(&server,true);Step(host);
+    vehicles[0].waypoints={{CC2X_WAYPOINT_MOVE,0},{CC2X_WAYPOINT_MOVE,0},{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};
+    DispatchOrder(host,0);Sync(&vehicles[0]);Step(host,24);
+    Require(vehicles[0].waypoints.size()==3&&vehicles[0].dock==CC2X_DOCK_UNDOCKED&&af.landing.empty()&&bodyWrites==0,
+            "Landing at the end of a route skipped its preceding orders");
+    host.WorldEvent("waypoints",vehicles[0].id);Step(host,8);
+    Require(vehicles[0].waypoints.back().type==CC2X_WAYPOINT_BARGE_LOAD_TILE,"Native route progress erased the queued landing");
+    auto savedVehicles=vehicles;auto savedAf=af;
+    host.Session(&server,false);vehicles=savedVehicles;af=savedAf;host.Session(&server,true);Step(host,16);
+    Require(vehicles[0].waypoints.size()==3&&vehicles[0].dock==CC2X_DOCK_UNDOCKED,"Reload promoted a future landing prematurely");
+    vehicles[0].waypoints.erase(vehicles[0].waypoints.begin());Step(host,16);
+    Require(vehicles[0].waypoints.size()==2&&vehicles[0].dock==CC2X_DOCK_UNDOCKED,"Landing started before the final preceding point");
+    vehicles[0].waypoints.erase(vehicles[0].waypoints.begin());Step(host,16);
+    Require(vehicles[0].dock!=CC2X_DOCK_UNDOCKED&&vehicles[0].dockTile==7,"Head-of-route landing never activated without a new player order");
+    host.Session(&server,false);Reset(true);tile.loaded=false;host.Session(&server,true);Step(host);
+    vehicles[0].waypoints={{CC2X_WAYPOINT_MOVE,0},{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};DispatchOrder(host,0);
+    tile.loaded=true;Step(host,16);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED&&vehicles[0].waypoints.size()==2,"Island streaming skipped the route prefix");
+    Order(host,CC2X_WAYPOINT_MOVE,0);Step(host,16);
+    Require(vehicles[0].dock==CC2X_DOCK_UNDOCKED,"Canceled future landing resurrected");
+    vehicles[0].waypoints={{CC2X_WAYPOINT_MOVE,0},{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};
+    host.WorldEvent("waypoints",vehicles[0].id);
+    Require(vehicles[0].waypoints.back().type==CC2X_WAYPOINT_MOVE,"Unattributed future landing was trusted");
+    host.Session(&server,false);Reset();host.Session(&server,true);Step(host);
+    std::cout<<"PASS queued final landing preserves route, native advancement, save/reload, streaming and cancellation\n";
+}
 }
 int main(int argc,char** argv){try{
     Require(argc==2,"Expected project path");project=fs::absolute(argv[1]).wstring();
@@ -316,6 +343,7 @@ int main(int argc,char** argv){try{
     host.Session(&server,true);Step(host);Require(host.Stats().modules==1,"Lua module did not load");
     CheckObliqueRunwayEntry(host);
     CheckLandingReload(host);
+    CheckRouteLandingQueue(host);
     vehicles[0].waypoints={{CC2X_WAYPOINT_BARGE_LOAD_TILE,7}};host.WorldEvent("waypoints",vehicles[0].id);
     Require(vehicles[0].dock==0&&vehicles[0].waypoints[0].type==CC2X_WAYPOINT_MOVE,"Unattributed command was accepted");
     // Deferred order replaced before the island loads.

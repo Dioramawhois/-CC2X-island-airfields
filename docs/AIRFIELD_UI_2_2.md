@@ -12,8 +12,9 @@ An airfield has an owned aircraft silhouette at its actual facility origin.
 Like the island hub, it uses a 16-pixel marker, a one-pixel black edge, the
 island team colour and white hover highlighting. It is separate from production.
 The island hub retains its original icon and production actions. The airfield
-hit area has a fixed seven-pixel radius; ordinary ground points remain movement
-orders at every map scale.
+hit area covers the complete owned silhouette and its black edge, together with
+the existing seven-pixel circle around its anchor. Hover and release use the same
+geometry; ordinary ground points remain movement orders at every map scale.
 
 Click the airfield icon for exactly four numbered aircraft cards. Click a parked
 aircraft once to open its loadout directly. Empty, busy and unavailable bays are
@@ -29,6 +30,16 @@ launch. Landing queues, approach, taxi and departure remain visible. The check
 reads the current native aircraft, including when the screen uses a Revolution
 proxy; it does not change the native parent, visibility or docking state.
 The native holomap background is outside this vehicle-control display fix.
+
+The pending occupancy readout uses a fixed 2x2 grid matching bays 1-2 / 3-4.
+Each occupied bay has an owned 6x6 dark-grey model glyph; empty bays remain
+empty instead of shifting other aircraft. The whole grid is 14x14 pixels, or
+15x15 with its black edge, normally to the left of the airfield marker. Hovering
+names the model; no occupancy number is drawn. Edge placement stays inside the
+viewport. Native full-size atlas images are not used in this map readout.
+Only the four current loaded hangar entries are considered. Arrival reservations,
+taxi, departure and stale unloaded data do not add glyphs. The main marker's
+landing hit area stays unchanged.
 
 The aircraft editor calls the existing carrier
 `imgui_vehicle_chassis_loadout` widget through an owned input adapter. It uses
@@ -55,6 +66,24 @@ airfield menu. Issue landing on the vehicle-control map by dragging the aircraft
 onto the explicit airfield icon. Ground clicks, first route points, later points
 and group orders remain ordinary movement. The accepted flight circuit, queue
 recovery and serialized landing intent remain unchanged.
+
+The aircraft-body drag replaces the old route, matching the accepted 2.2.1
+behaviour. To add landing after a route, drag its final point onto the marker.
+Only that point and its suffix are replaced; all earlier points and attacks
+are retained. Landing starts when the typed terminal order reaches the front.
+The hit is resolved from the pointer/cursor and current facility geometry at
+the actual input event. Cached hover from a previous frame is display state,
+never an authoritative landing destination. Clicking away falls through to
+the original map controls.
+
+The typed landing point remains visually attached to the actual airfield marker.
+Native `barge_load_tile` waypoint positions resolve to the island centre, so
+reviewed map reads use the owned `mm_waypoint_position(vehicle, waypoint)` adapter.
+It changes presentation only for a team-owned aircraft's typed landing with a
+known, unambiguous destination from the existing landing metadata, and only when
+its native tile-centre position agrees with that exact destination. Earlier points,
+barge routes and carrier targets keep their native positions. A recreated screen
+uses the recovered host landing metadata; unknown targets are not guessed.
 
 Weapon changes are free in this minor release, by the owner's decision. The new
 attachment is created with full ammunition; no warehouse, island, carrier or barge
@@ -83,9 +112,13 @@ The mailbox is host-local; distant discovery on remote clients is unverified.
 
 The screen's original forward transform supplies projection and its affine
 inverse supplies the launch destination. Stock holomap aspect/camera parameters
-and Revolution's holomap helper are handled separately. Source edits only insert
-owned draw calls; original order call sites and hub controls are preserved.
+and Revolution's holomap helper are handled separately. Source edits add owned
+map drawing, parking checks and landing presentation; original order call sites
+and hub controls are preserved.
 The owned helper wraps callbacks and delegates inputs outside its visible map.
+Reviewed vehicle-control profiles also adapt the five waypoint-position reads
+used by pointer targeting, route lines, endpoint glyphs and drag preview. The
+native order setters remain unchanged.
 
 Landing uses the existing `barge_load_tile` typed waypoint and the guarded
 server receive context. The reviewed generator has one field per island. The
@@ -99,6 +132,13 @@ reconstruction are described in [Landing save/reload](LANDING_SAVE_RELOAD.md).
 The map/holomap show QUEUE/HOLD/LAND/TAXI, a dashed link to the field and an arrival
 count. Hovering an assigned aircraft names its destination. These survive a fresh
 screen state through host metadata rather than requiring another click.
+
+In the pending route fix, dragging an existing waypoint onto the airfield replaces
+that waypoint and its suffix with terminal landing, preserving every earlier
+waypoint and its attack instructions. Dropping the aircraft itself appends
+landing after its existing route. The host registers this as ROUTE and leaves
+the earlier orders under native control. It begins landing only when that typed
+waypoint becomes first. A cyclic or indefinite earlier order is not bypassed.
 
 Loadout uses the existing host-local mailbox:
 
@@ -147,6 +187,11 @@ artifact, at x1 time. Retain a save backup and the existing published installati
 8. Save/reload with three arrivals to one field, including a waiting aircraft and
    a deferred arrival before streaming. Confirm all links, statuses and final bays;
    repeat after clearing/replacing a route to ensure cancellation stays canceled.
+
+Native map views are unwrapped only with raw table access to Revolution's
+wrapper markers. A strict view must never receive an `extended` or `v` lookup.
+Regression checks keep airborne selections/drags intact, clear parked ones,
+and exercise the Squadron Orders helper in both installation orders.
 
 Screenshots or direct owner confirmation establish UI acceptance. Offline Lua,
 mock-host, syntax checks and static executable inspection establish only their

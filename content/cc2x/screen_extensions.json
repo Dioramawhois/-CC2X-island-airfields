@@ -50,14 +50,39 @@
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
             },
             {
-              "offset": 104154,
+              "offset": 91414,
+              "remove": 92,
+              "insert": "or mm_is_airfield_landing_waypoint(vehicle, waypoint) then\n                                        local waypoint_pos = mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 104153,
               "remove": 0,
-              "insert": "        mm_draw_airfields(screen_w, screen_h, false)\n\n"
+              "insert": "\n        mm_draw_airfields(screen_w, screen_h, false)\n"
             },
             {
               "offset": 119016,
               "remove": 0,
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 130082,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 131653,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 136428,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 168911,
+              "remove": 30,
+              "insert": "mm_waypoint_position(drag_vehicle, drag_waypoint"
             },
             {
               "offset": 188249,
@@ -95,14 +120,39 @@
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
             },
             {
-              "offset": 104253,
+              "offset": 91513,
+              "remove": 92,
+              "insert": "or mm_is_airfield_landing_waypoint(vehicle, waypoint) then\n                                        local waypoint_pos = mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 104252,
               "remove": 0,
-              "insert": "        mm_draw_airfields(screen_w, screen_h, false)\n\n"
+              "insert": "\n        mm_draw_airfields(screen_w, screen_h, false)\n"
             },
             {
               "offset": 119115,
               "remove": 0,
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 130163,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 131734,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 136509,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 168992,
+              "remove": 30,
+              "insert": "mm_waypoint_position(drag_vehicle, drag_waypoint"
             },
             {
               "offset": 188330,
@@ -135,6 +185,11 @@
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
             },
             {
+              "offset": 52193,
+              "remove": 96,
+              "insert": "or mm_is_airfield_landing_waypoint(vehicle, waypoint) then\n                                            local waypoint_pos = mm_waypoint_position(vehicle, waypoint"
+            },
+            {
               "offset": 61494,
               "remove": 0,
               "insert": "\n        mm_draw_airfields(screen_w, screen_h, false)\n"
@@ -143,6 +198,26 @@
               "offset": 72182,
               "remove": 0,
               "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 80580,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 82223,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 86138,
+              "remove": 25,
+              "insert": "mm_waypoint_position(vehicle, waypoint"
+            },
+            {
+              "offset": 106029,
+              "remove": 30,
+              "insert": "mm_waypoint_position(drag_vehicle, drag_waypoint"
             },
             {
               "offset": 119159,

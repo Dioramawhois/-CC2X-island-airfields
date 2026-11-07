@@ -18,6 +18,17 @@
                              local vehicle_team = vehicle:get_team()
                              local vehicle_attached_parent_id = vehicle:get_attached_parent_id()
  
+@@ -1162,8 +1162,8 @@
+                                         local waypoint = vehicle:get_waypoint(j)
+                                         local waypoint_type = waypoint:get_type()
+ 
+-                                        if waypoint_type == e_waypoint_type.move or waypoint_type == e_waypoint_type.deploy then
+-                                            local waypoint_pos = waypoint:get_position_xz(j)
++                                        if waypoint_type == e_waypoint_type.move or waypoint_type == e_waypoint_type.deploy or mm_is_airfield_landing_waypoint(vehicle, waypoint) then
++                                            local waypoint_pos = mm_waypoint_position(vehicle, waypoint)
+                                             local waypoint_screen_pos_x, waypoint_screen_pos_y = get_screen_from_world(waypoint_pos:x(), waypoint_pos:y(), g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
+                                             local waypoint_distance_to_cursor = math.abs(waypoint_screen_pos_x - g_cursor_pos_x) + math.abs(waypoint_screen_pos_y - g_cursor_pos_y)
+ 
 @@ -1310,6 +1310,8 @@
              end
          end
@@ -36,6 +47,42 @@
                          local is_visible = vehicle:get_is_visible()
                          local is_revealed = vehicle:get_is_observation_revealed()
  
+@@ -1627,7 +1629,7 @@
+ 
+                                         if waypoint_count > 0 then
+                                             local waypoint = vehicle:get_waypoint(0)
+-                                            local waypoint_pos = waypoint:get_position_xz()
++                                            local waypoint_pos = mm_waypoint_position(vehicle, waypoint)
+                                             local path_end_x, path_end_y = get_screen_from_world(waypoint_pos:x(), waypoint_pos:y(), g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
+ 
+                                             update_ui_line(waypoint_pos_x_prev, waypoint_pos_y_prev, path_end_x, path_end_y, waypoint_color)
+@@ -1650,7 +1652,7 @@
+ 
+                                     for j = 0, waypoint_count - 1, 1 do
+                                         local waypoint = vehicle:get_waypoint(j)
+-                                        local waypoint_pos = waypoint:get_position_xz()
++                                        local waypoint_pos = mm_waypoint_position(vehicle, waypoint)
+                                         local waypoint_screen_pos_x, waypoint_screen_pos_y = get_screen_from_world(waypoint_pos:x(), waypoint_pos:y(), g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
+ 
+                                         if j >= waypoint_start_index then
+@@ -1699,7 +1701,7 @@
+ 
+                                     for j = 0, waypoint_count - 1, 1 do
+                                         local waypoint = vehicle:get_waypoint(j)
+-                                        local waypoint_pos = waypoint:get_position_xz()
++                                        local waypoint_pos = mm_waypoint_position(vehicle, waypoint)
+ 
+                                         local waypoint_screen_pos_x, waypoint_screen_pos_y = get_screen_from_world(waypoint_pos:x(), waypoint_pos:y(), g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
+ 
+@@ -2026,7 +2028,7 @@
+                 local drag_waypoint = drag_vehicle:get_waypoint_by_id(g_drag.waypoint_id)
+ 
+                 if drag_waypoint:get() then
+-                    local waypoint_pos = drag_waypoint:get_position_xz()
++                    local waypoint_pos = mm_waypoint_position(drag_vehicle, drag_waypoint)
+                     local screen_pos_x, screen_pos_y = get_screen_from_world(waypoint_pos:x(), waypoint_pos:y(), g_camera_pos_x, g_camera_pos_y, g_camera_size, screen_w, screen_h)
+ 
+                     update_ui_line(screen_pos_x, screen_pos_y, g_cursor_pos_x, g_cursor_pos_y, color8(255, 255, 255, 255))
 @@ -2282,6 +2284,7 @@
          end
      end

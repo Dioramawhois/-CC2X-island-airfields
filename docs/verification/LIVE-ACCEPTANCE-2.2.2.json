@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-08",
+  "version": "2.2.2-client-beta.1",
+  "owner_release_authorized": true,
+  "approval_basis": "Owner requested publication after launching the exact landing-anchor candidate in the ordinary combined ModLoader setup.",
+  "owner_message": "???????? ????? ????? ???",
+  "acceptance_scope": "Landing waypoint attachment and airfield icon hit target in the tested ordinary-host setup; no detailed per-case runtime results were supplied.",
+  "candidate_archive_sha256": "4c743fa81862b7485334cb6f8cc50a6f9f6d588eb06cdbe5ad530a4523c6681d",
+  "candidate_payload_sha256": {
+    "LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "content/bridge.json": "b8dcff6b91be3a7ba9dc83b4472cb9989b4b696297fab413da1d5533c8b1e75d",
+    "content/bridge/main.lua": "b70832364b8df35115fce44a3f4c051ed7f07de6d62182bbf1eb52147ac72e61",
+    "content/bridge/policy.lua": "2b632d2779a821eb352f16776a5d4cf2d3c979922f4e211905f4c5e336441e00",
+    "content/bridge/rules.lua": "6605e481ecfd9dda713eb430b8d7333cb61dd38a0a67b6a4b1fb267b724cbb68",
+    "content/bridge/settings.lua": "c88b58c4c415b38ebb57ef4a4e50301dafd0bb1c9bc8819a6176c3227462549c",
+    "content/cc2x/screen_extensions.json": "7e44ceca58f64fd0567875db8f1e874b542dedfbb8ab634adf13e34a460c8222",
+    "content/cc2x/ui/carrier_traffic.lua": "aa5c7967a033d4f0c92bb2dbcf4c7085b6aa00754ce38d5c8fba324f3641b5f6",
+    "content/cc2x/ui/ui_common.lua": "c1629cac824a38d3f8b75a1996723d1b49b9ee79331aad39fa192c73735a39bb",
+    "mod.xml": "471c9ef90b7139fc235fb439c30df5a1af37f884c016fe1be56c29c833a27514",
+    "thumbnail.png": "0d4e5b59271e01fbbc5bb8b05251e90684eb8e2afa59c9772b9897f0c3f6df1b"
+  },
+  "installed_sdk_version": "0.11.0-dev",
+  "installed_sdk_sha256": "9bbd7a322a8e5164a98f7308e77d2c5ed5f65adcadfee699c5d561ab4aedf129",
+  "sdk_modified": false,
+  "sdk_replaced": false,
+  "combined_mod_count": 8,
+  "remote_multiplayer_tested": false,
+  "dedicated_server_tested": false,
+  "source_content_matches_tested_candidate": true
+}
