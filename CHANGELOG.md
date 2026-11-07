@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Hide aircraft parked at island airfields from the vehicle-control map,
+  pointer targeting and deployed-unit overview. Revolution's aircraft sidebar,
+  unit wall and box selection also exclude them, including close map zoom.
+- Keep all four airfield bays and their loadout/launch actions available.
+  Landing queues, approach, taxi and departing aircraft retain active visibility.
+- Clear stale map selections after parking and remove the old parking ring.
+  Use the existing SDK; flight policy, inventory and save format are unchanged.
+
 ## 2.2.0-client-beta.5 (2026-11-06)
 
 - Open the selected aircraft loadout directly from its bay. Reuse the carrier

@@ -52,6 +52,7 @@ local function is_diagram()
  return has('Current:') and not has('Land aircraft') and diagram_calls>0
 end
 g_pointer_pos_x,g_pointer_pos_y=120,60;frame()
+assert(parking_circles==0,'parked aircraft retained an active-map circle')
 input_event(e_input.pointer_1,1);input_event(e_input.pointer_1,0);frame()
 assert(has('SELECT AIRCRAFT') and has('Manta #21') and not has('Launch') and not has('Land aircraft') and original_calls==0,
  'airfield should open only four aircraft bays')

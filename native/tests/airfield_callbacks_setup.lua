@@ -4,6 +4,7 @@ e_vehicle_dock_state={undocked=0,docked=4,dock_queue=5,docking=1}
 e_input={pointer_1=1,action_a=2,back=3,up=4,down=5,left=6,right=7}
 e_input_action={press=1,release=0}
 original_calls,drawn,texts,mail,images,text_calls=0,{}, {}, {},{},{}
+parking_circles=0
 visible,session,reply=true,1,nil
 local a={}
 function a:get()return true end
@@ -38,7 +39,7 @@ function update_ui_image(x,y,icon,c)
  assert(icon~=1,'The 8px factory icon must not be used as a facility marker')
  images[#images+1]={x,y,icon,c}
 end
-function update_ui_circle()end
+function update_ui_circle()parking_circles=parking_circles+1 end
 function update_ui_rectangle(x,y,w,h,c)drawn[#drawn+1]={x,y,w,h,c}end
 function update_ui_text(x,y,text,w,_,c)texts[#texts+1]=text;text_calls[#text_calls+1]={x=x,y=y,text=text,w=w,c=c}end
 function update_get_attachment_option_count()return 7 end

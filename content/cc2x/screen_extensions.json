@@ -35,14 +35,44 @@
           "sha256": "5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854",
           "edits": [
             {
+              "offset": 12292,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 68871,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 85901,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
               "offset": 104154,
               "remove": 0,
               "insert": "        mm_draw_airfields(screen_w, screen_h, false)\n\n"
             },
             {
+              "offset": 119016,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 188249,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
               "offset": 190601,
               "remove": 0,
               "insert": "        mm_draw_cc2x_notice(screen_w, screen_h)\n"
+            },
+            {
+              "offset": 222294,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
             }
           ]
         },
@@ -50,14 +80,44 @@
           "sha256": "ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f",
           "edits": [
             {
+              "offset": 12292,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 68871,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 85901,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
               "offset": 104253,
               "remove": 0,
               "insert": "        mm_draw_airfields(screen_w, screen_h, false)\n\n"
             },
             {
+              "offset": 119115,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 188330,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
               "offset": 190682,
               "remove": 0,
               "insert": "        mm_draw_cc2x_notice(screen_w, screen_h)\n"
+            },
+            {
+              "offset": 222375,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
             }
           ]
         },
@@ -65,9 +125,24 @@
           "sha256": "dc5f291aaf304c4709dc9a931812f0d1b058834ddb5677dc87467a9c2ea71266",
           "edits": [
             {
-              "offset": 61495,
+              "offset": 6506,
               "remove": 0,
-              "insert": "        mm_draw_airfields(screen_w, screen_h, false)\n\n"
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 50373,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
+            },
+            {
+              "offset": 61494,
+              "remove": 0,
+              "insert": "\n        mm_draw_airfields(screen_w, screen_h, false)\n"
+            },
+            {
+              "offset": 72182,
+              "remove": 0,
+              "insert": "and not mm_is_parked_at_airfield(vehicle) "
             },
             {
               "offset": 119159,
@@ -86,9 +161,9 @@
           "sha256": "7382748796166450a599b711b33da8d6fea231de2e28fb413befc2b159509ba0",
           "edits": [
             {
-              "offset": 8419,
-              "remove": 121,
-              "insert": "                -- Island Airfields: this carrier only, using stock parent semantics.\n                local deck_state = mm_carrier_flight_deck_state(this_vehicle, vehicle)\n"
+              "offset": 8435,
+              "remove": 104,
+              "insert": "-- Island Airfields: this carrier only, using stock parent semantics.\n                local deck_state = mm_carrier_flight_deck_state(this_vehicle, vehicle)"
             },
             {
               "offset": 8641,

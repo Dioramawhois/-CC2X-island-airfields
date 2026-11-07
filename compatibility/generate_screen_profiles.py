@@ -20,8 +20,16 @@ def profile(original, modified):
     edits=[]
     for kind,a,b,c,d in difflib.SequenceMatcher(a=before,b=after,autojunk=False).get_opcodes():
         if kind!='equal':
-            edits.append({'offset':offsets[a],'remove':offsets[b]-offsets[a],
-                          'insert':b''.join(after[c:d]).decode('utf-8')})
+            old, new = b''.join(before[a:b]).decode('utf-8'), b''.join(after[c:d]).decode('utf-8')
+            first, last = 0, 0
+            while first < min(len(old), len(new)) and old[first] == new[first]:
+                first += 1
+            while last < min(len(old)-first, len(new)-first) and old[-1-last] == new[-1-last]:
+                last += 1
+            old_end, new_end = len(old)-last, len(new)-last
+            edits.append({'offset':offsets[a]+len(old[:first].encode('utf-8')),
+                          'remove':len(old[first:old_end].encode('utf-8')),
+                          'insert':new[first:new_end]})
     return {'sha256':hashlib.sha256(canonical(original)).hexdigest(),'edits':edits}
 
 def load(name,path):

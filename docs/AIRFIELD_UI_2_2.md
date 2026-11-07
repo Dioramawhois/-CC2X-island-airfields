@@ -21,6 +21,15 @@ labelled and cannot open another aircraft. Narrow cards use the stock chassis
 symbol and abbreviation; larger cards use the chassis image. Arrival counts
 remain visible separately from parked aircraft.
 
+The pending parking-display fix removes fully docked island aircraft from the
+vehicle-control map, pointer targeting and deployed overview. Revolution's
+aircraft sidebar, unit wall and box selection apply the same check. A parked
+aircraft remains accessible through its airfield bay for loadout changes and
+launch. Landing queues, approach, taxi and departure remain visible. The check
+reads the current native aircraft, including when the screen uses a Revolution
+proxy; it does not change the native parent, visibility or docking state.
+The native holomap background is outside this vehicle-control display fix.
+
 The aircraft editor calls the existing carrier
 `imgui_vehicle_chassis_loadout` widget through an owned input adapter. It uses
 the game's chassis image, hardpoint positions, installed equipment symbols and

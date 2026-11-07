@@ -111,8 +111,17 @@ function mm_issue_landing(vehicle,b)
     g_mm_landing_orders[vehicle:get_id()]=b.tile;return true
 end
 function mm_is_parked_at_airfield(v)
+    v=real(v)
     return v and v:get() and get_is_vehicle_air(v:get_definition_index()) and
         v:get_dock_state()==e_vehicle_dock_state.docked and v:get_attached_parent_id()==0
+end
+local function clear_parked_map_selection()
+    -- Map selections use native IDs; the airfield editor has its own identity.
+    for _,selection in pairs({g_selection,g_highlighted,g_drag})do
+        if type(selection)=='table' and integer(selection.vehicle_id) and selection.vehicle_id>0 and
+           type(selection.clear)=='function' and
+           mm_is_parked_at_airfield(update_get_map_vehicle_by_id(selection.vehicle_id))then selection:clear()end
+    end
 end
 function mm_is_queued_at_airfield(v)
     local s=v:get_dock_state()
@@ -204,9 +213,7 @@ function mm_draw_airfields(w,h,holomap)
         local v=update_get_map_vehicle_by_index(i)
         if v:get() and v:get_team()==update_get_screen_team_id() and get_is_vehicle_air(v:get_definition_index())then
             local p=v:get_position_xz();local x,y=project(p:x(),p:y());local c=update_get_team_color(v:get_team())
-            if mm_is_parked_at_airfield(v)then
-                if not holomap then update_ui_circle(x,y,7,12,c)end
-            else
+            if not mm_is_parked_at_airfield(v)then
                 local tid,stage=landing_target(v)
                 if tid then
                     arrivals[tid]=(arrivals[tid] or 0)+1
@@ -534,6 +541,7 @@ local original_update,original_event=update,input_event
 if type(original_update)=='function'then
     function update(w,h,ticks)
         frame.visible,frame.hover=false,nil;frame.w,frame.h=w,h;frame.number=(frame.number or 0)+1
+        clear_parked_map_selection()
         original_update(w,h,ticks)
         result(ticks)
         if frame.visible then panel()else close();ui.route=nil end

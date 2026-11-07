@@ -123,9 +123,26 @@ class ScreenProfileGenerationTest(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 self.generator.unique_profiles([first, different])
 
+    def test_inline_owned_guard_ships_only_the_inserted_expression(self):
+        original = 'local label = "\u03a9"\nif vehicle:get() then\n    draw()\nend\n'.encode()
+        guard = b' and not mm_is_parked_at_airfield(vehicle)'
+        modified = original.replace(b'if vehicle:get() then', b'if vehicle:get()'+guard+b' then')
+        profile = self.generator.profile(original, modified)
+        self.assertEqual(len(profile['edits']), 1)
+        edit = profile['edits'][0]
+        self.assertEqual(edit['remove'], 0)
+        self.assertEqual(edit['insert'].strip(), guard.decode().strip())
+        self.assertEqual(original[:edit['offset']]+edit['insert'].encode()+original[edit['offset']:], modified)
+
+    def test_minimal_edit_preserves_complete_utf8_characters(self):
+        original, modified = 'local x = "\u03a9"\n'.encode(), 'local x = "\u03a8"\n'.encode()
+        edit, = self.generator.profile(original, modified)['edits']
+        self.assertEqual(original[:edit['offset']]+edit['insert'].encode()+
+                         original[edit['offset']+edit['remove']:], modified)
+
     def test_shipped_profiles_retain_reviewed_sources_and_only_insert_map_hooks(self):
         # Retain every reviewed source identity. All map order call sites now
-        # remain original; only owned drawing hooks are inserted in the source.
+        # remain original; only owned drawing/parking guards are inserted.
         expected = {
             'scripts/screen_holomap.lua': {
                 '22b31c3892623275e3ea4acfc1b390eac764a7de0a804a6eba0accc9a9173042',
@@ -150,10 +167,14 @@ class ScreenProfileGenerationTest(unittest.TestCase):
                     for edit in profile['edits']:
                         self.assertEqual(edit['remove'], 0, 'original map behavior was replaced')
                         self.assertNotIn('add_waypoint', edit['insert'])
-                        self.assertIn('mm_draw_', edit['insert'])
+                        self.assertTrue('mm_draw_' in edit['insert'] or
+                                        'mm_is_parked_at_airfield(' in edit['insert'])
         old = '5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854'
         new = 'ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f'
         control = {item['sha256']: item for item in entries['scripts/screen_vehicle_control.lua']['profiles']}
+        for digest, profile in control.items():
+            guards = sum(edit['insert'].count('mm_is_parked_at_airfield(') for edit in profile['edits'])
+            self.assertEqual(guards, 3 if digest.startswith('dc5f291a') else 6)
         self.assertIn(new, control)
         self.assertNotEqual(control[new]['edits'], control[old]['edits'])
 
