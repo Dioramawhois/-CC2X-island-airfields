@@ -29,7 +29,9 @@ if __name__ == '__main__':
               Path(__file__).resolve(), ROOT/'content/cc2x/ui/carrier_traffic.lua',
               ROOT/'native/tests/airfield_ui_v2.lua', ROOT/'native/tests/airfield_callbacks_setup.lua',
               ROOT/'native/tests/airfield_callbacks_check.lua', ROOT/'content/bridge/policy.lua',
-              ROOT/'native/tests/airfield_loadout_policy.lua']
+              ROOT/'native/tests/airfield_loadout_policy.lua',
+              ROOT/'native/tests/airfield_parked_map_setup.lua',
+              ROOT/'native/tests/airfield_parked_map.lua']
     hashes = {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}
     objects = sorted((sdk/'build/unified/objects').glob('third_party_lua_*.obj'))
     if not objects:
@@ -49,6 +51,7 @@ if __name__ == '__main__':
         subprocess.run([str(output),str(inputs[6]),str(inputs[0]),str(inputs[7])],check=True,timeout=15,
                        env=dict(os.environ,IAF_UI_CAPTURE_DIR=str(previews)))
         subprocess.run([str(output),str(inputs[8]),str(inputs[4]),str(inputs[9])],check=True,timeout=15)
+        subprocess.run([str(output),str(inputs[10]),str(inputs[0]),str(inputs[11])],check=True,timeout=15)
         executable = sha(output)
     if hashes != {p.relative_to(ROOT).as_posix():sha(p) for p in inputs}:
         raise ValueError('UI fixture inputs changed during validation')

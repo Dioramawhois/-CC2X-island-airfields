@@ -1,5 +1,32 @@
 --- a/content/scripts/screen_vehicle_control.lua
 +++ b/content/scripts/screen_vehicle_control.lua
+@@ -425,7 +425,7 @@
+                 if def ~= e_game_object_type.chassis_carrier and def ~= e_game_object_type.chassis_sea_barge and def ~= e_game_object_type.chassis_land_turret and def ~= e_game_object_type.chassis_land_robot_dog and def ~= e_game_object_type.chassis_spaceship and def ~= e_game_object_type.drydock then
+                     local parent_vehicle_index = vehicle:get_attached_parent_id()
+ 
+-                    if parent_vehicle_index == 0 then
++                    if parent_vehicle_index == 0 and not mm_is_parked_at_airfield(vehicle) then
+                         table_insert(deployed_vehicles, vehicle)
+                     end
+                 end
+@@ -1657,7 +1657,7 @@
+                         if vehicle:get_team() == our_team then
+                             local vdef = vehicle:get_definition_index()
+                             if get_is_vehicle_air(vdef) then
+-                                if not vehicle:get_is_docked() then
++                                if not vehicle:get_is_docked() and not mm_is_parked_at_airfield(vehicle) then
+                                     g_sidebar_unit_count = g_sidebar_unit_count + 1
+                                     local vid = vehicle:get_id()
+                                     local damage_factor = clamp(vehicle:get_hitpoints() / vehicle:get_total_hitpoints(), 0, 1)
+@@ -2026,7 +2026,7 @@
+                 for x, vehicle in pairs(get_vehicles_table()) do
+                     local vehicle_definition_index = vehicle:get_definition_index()
+ 
+-                    if vehicle_definition_index ~= e_game_object_type.chassis_spaceship and vehicle_definition_index ~= e_game_object_type.drydock then
++                    if vehicle_definition_index ~= e_game_object_type.chassis_spaceship and vehicle_definition_index ~= e_game_object_type.drydock and not mm_is_parked_at_airfield(vehicle) then
+                         local vehicle_team = vehicle:get_team()
+                         local vehicle_attached_parent_id = vehicle:get_attached_parent_id()
+                         local revealed = vehicle:get_is_observation_revealed()
 @@ -2318,6 +2318,8 @@
              end
          end
@@ -9,6 +36,24 @@
          -- render grid
  
          if g_map_render_mode == 1 then
+@@ -2604,7 +2606,7 @@
+                             color_grey_dark
+                     )
+ 
+-                elseif vehicle_definition_index ~= e_game_object_type.chassis_spaceship then
++                elseif vehicle_definition_index ~= e_game_object_type.chassis_spaceship and not mm_is_parked_at_airfield(vehicle) then
+                     local is_air = get_is_vehicle_air(vehicle_definition_index)
+                     local is_visible = vehicle:get_is_visible()
+                     local is_revealed = vehicle:get_is_observation_revealed()
+@@ -3782,7 +3784,7 @@
+                             or (g_wall_mode == g_wall_gnd and get_is_vehicle_land(vehicle_def) and vehicle_def ~= e_game_object_type.chassis_land_turret)
+                             or (g_wall_mode == g_wall_sea and get_is_vehicle_sea(vehicle_def))
+                             or (g_wall_mode == g_wall_trt and vehicle_def == e_game_object_type.chassis_land_turret)
+-                    ) and not get_vehicle_docked(vehicle) then
++                    ) and not get_vehicle_docked(vehicle) and not mm_is_parked_at_airfield(vehicle) then
+                         total = total + 1
+                         number = number + 1
+                         if vx < screen_w - 126 and number >= g_wall_offset then
 @@ -3843,6 +3845,7 @@
  
      end
@@ -17,3 +62,12 @@
          g_ui:end_ui()
      end
  
+@@ -4415,7 +4418,7 @@
+         if vehicle and vehicle:get() then
+             local vehicle_team = vehicle:get_team()
+             if vehicle_team == our_team then
+-                if not vehicle:get_is_docked() then
++                if not vehicle:get_is_docked() and not mm_is_parked_at_airfield(vehicle) then
+                     if get_is_vehicle_type_waypoint_capable(vehicle:get_definition_index()) then
+                         local pos = vehicle:get_position_xz()
+                         local vx = pos:x()
