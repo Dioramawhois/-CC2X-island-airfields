@@ -18,6 +18,12 @@ and research evidence remain outside distribution artifacts.
 
 ## Durable state and recovery
 
+- A future terminal landing remains a typed waypoint after the earlier route
+  points. It does not reserve a runway, clear the route or begin docking until
+  it becomes the first waypoint. Pending route IDs are tracked separately from
+  the existing unstreamed-island landing queue. On session recovery, the host
+  reconstructs future intent from validated saved typed waypoints. Unknown
+  incoming orders do not acquire this authorization.
 - During approach, holding, rollout and parking, retain the real native docking
   tile and airfield index. Native serialization already saves these fields and
   the airfield hangar IDs/queues; no sidecar files or save-file rewrites are used.
@@ -42,12 +48,22 @@ waiting aircraft must remain visible as assigned arrivals.
 ## Map metadata
 
 The host publishes `landing(vehicle_id)=tile_id` and `landing_stage(vehicle_id)`:
-0 clear, 1 deferred/en route, 2 native queue, 3 holding, 4 approach, 5 rollout.
+0 clear, 1 deferred/en route, 2 native queue, 3 holding, 4 approach, 5 rollout,
+6 future landing after preceding route points.
 This is display state, not a command transport or a replacement for native saves.
 The map and holomap draw a dashed connection to the known airfield position,
 QUEUE/HOLD/LAND/TAXI labels, destination text on hover and an arrival count beside
-the marker and in its menu. The screen-local click cache is only a fallback.
+the marker and in its menu. Stage 6 uses ROUTE and the original waypoint path,
+without an extra direct approach line. The screen-local click cache is only a fallback.
 No approximate hub position is substituted when facility coordinates are absent.
+
+The vehicle-control map resolves the typed terminal marker to the same known
+airfield position. The engine's generic tile-waypoint getter otherwise returns
+the island centre even when the order was created at the airfield coordinates.
+An owned presentation adapter keeps the marker, route segments, hit testing and
+drag origin attached to the field; the serialized token and flight policy stay
+unchanged. Tests emulate this native centre-position behavior rather than only
+storing the coordinates passed to `add_waypoint`.
 
 ## Validation and acceptance
 
@@ -64,3 +80,7 @@ while one approaches and two wait, reload, inspect all three links/statuses and
 confirm all three park in distinct bays. Repeat before the destination streams,
 after cancellation and on the older owner save. Verify that saved parked aircraft
 still expose the correct loadout/launch actions. Preserve the original saves.
+For the terminal-marker correction, create one movement point, drag a second
+point onto the airfield silhouette (including its upper nose/edge), and verify
+that the line ends at that icon. Check the attachment again after screen reload
+and save/reload, and confirm the first movement/attack point remains intact.

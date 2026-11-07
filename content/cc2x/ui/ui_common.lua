@@ -38,7 +38,7 @@ local function own(tile)
     local t=update_get_tile_by_id(tile)
     return t and t:get() and t:get_team_control()==update_get_screen_team_id()
 end
-local function real(v) return type(v)=='table' and v.extended==true and v.v or v end
+local function real(v) return type(v)=='table' and rawget(v,'extended')==true and rawget(v,'v') or v end
 function mm_can_land(vehicle)
     vehicle=real(vehicle);if not vehicle or not vehicle:get() then return false end
     local p=mm_plugin();if not p and not mm_remote_host()then return false end
@@ -96,24 +96,51 @@ function mm_island_pos(island)
 end
 -- Ordinary points, including first points, dragged routes and group/proxy orders, stay moves.
 function mm_add_waypoint(vehicle,x,z) return real(vehicle):add_waypoint(x,z) end
-function mm_issue_landing(vehicle,b)
+function mm_issue_landing(vehicle,b,waypoint_id)
     vehicle=real(vehicle)
-    if not b or b.index~=0 or not base(b.tile,b.index) or not own(b.tile) or not mm_can_land(vehicle) or
+    b=type(b)=='table' and b.index==0 and base(b.tile,b.index) or nil
+    if not b or not own(b.tile) or not mm_can_land(vehicle) or
        vehicle:get_team()~=update_get_screen_team_id() or vehicle:get_dock_state()~=e_vehicle_dock_state.undocked or
        vehicle:get_attached_parent_id()~=0 then return false end
     -- The reviewed generator creates one runway. Refuse ambiguous multi-runway
     -- islands until the public landing primitive addresses an exact index.
     local total=0;for _,candidate in ipairs(mm_airfields())do if candidate.tile==b.tile then total=total+1 end end
     if total~=1 then return false end
-    vehicle:clear_waypoints();vehicle:clear_attack_target()
+    if waypoint_id~=nil and waypoint_id~=0 then
+        if not integer(waypoint_id) or type(vehicle.get_waypoint_by_id)~='function' or
+           type(vehicle.clear_waypoints_from)~='function' then return false end
+        local existing=vehicle:get_waypoint_by_id(waypoint_id)
+        if not existing or not existing:get()then return false end
+        -- Landing is terminal. Replace the dragged point and its suffix only;
+        -- every earlier point (including its attack orders) stays untouched.
+        vehicle:clear_waypoints_from(waypoint_id)
+    else
+        -- Preserve the accepted aircraft-body gesture: issue a new landing
+        -- instead of silently appending to an unrelated existing route.
+        vehicle:clear_waypoints();vehicle:clear_attack_target()
+    end
     local waypoint=vehicle:add_waypoint(b.x,b.z)
     vehicle:set_waypoint_type_barge_load_tile(waypoint,b.tile)
     g_mm_landing_orders[vehicle:get_id()]=b.tile;return true
 end
-function mm_is_parked_at_airfield(v)
+local parking_warning_reported=false
+local function parking_warning(err)
+    if parking_warning_reported then return end
+    parking_warning_reported=true
+    pcall(function()
+        local message='Island Airfields parking UI: '..tostring(err)
+        if cc2x and type(cc2x.log)=='function'then cc2x.log(message)else print(message)end
+    end)
+end
+local function is_parked_at_airfield(v)
     v=real(v)
     return v and v:get() and get_is_vehicle_air(v:get_definition_index()) and
         v:get_dock_state()==e_vehicle_dock_state.docked and v:get_attached_parent_id()==0
+end
+function mm_is_parked_at_airfield(v)
+    local okay,result=pcall(is_parked_at_airfield,v)
+    if not okay then parking_warning(result);return false end
+    return result==true
 end
 local function clear_parked_map_selection()
     -- Map selections use native IDs; the airfield editor has its own identity.
@@ -132,6 +159,36 @@ local function landing_target(v)
     local tid=read('landing',v:get_id())
     if tid==nil then tid=g_mm_landing_orders[v:get_id()] end
     if integer(tid) and tid>0 and own(tid)then return tid,read('landing_stage',v:get_id()) or 1 end
+end
+local function airfield_waypoint_destination(vehicle,waypoint,position)
+    vehicle=real(vehicle)
+    if not e_waypoint_type or waypoint:get_type()~=e_waypoint_type.barge_load_tile or
+       not mm_can_land(vehicle) or vehicle:get_team()~=update_get_screen_team_id()then return nil end
+    -- The native barge token resolves its position to the island centre. Keep
+    -- that serialized destination, but draw the aircraft's authorized landing
+    -- at the actual airfield, including after rebuilding the screen VM.
+    local tid=landing_target(vehicle);if not tid then return nil end
+    -- Stock Lua has no getter for the token's tile ID. Its resolved native
+    -- position must agree with the exact metadata target's island centre;
+    -- a stale or differently targeted token must not inherit this landing.
+    local centre=update_get_tile_by_id(tid):get_position_xz()
+    local px,pz,cx,cz=position:x(),position:y(),centre:x(),centre:y()
+    if not finite(px) or not finite(pz) or not finite(cx) or not finite(cz) or
+       math.abs(px-cx)>0.01 or math.abs(pz-cz)>0.01 then return nil end
+    local destination,total=nil,0
+    for _,b in ipairs(mm_airfields())do if b.tile==tid then destination=b;total=total+1 end end
+    if total~=1 or destination.index~=0 then return nil end
+    return destination
+end
+function mm_is_airfield_landing_waypoint(vehicle,waypoint)
+    return airfield_waypoint_destination(vehicle,waypoint,waypoint:get_position_xz())~=nil
+end
+function mm_waypoint_position(vehicle,waypoint)
+    local position=waypoint:get_position_xz()
+    local destination=airfield_waypoint_destination(vehicle,waypoint,position)
+    if not destination then return position end
+    local x,z=destination.x,destination.z
+    return {x=function()return x end,y=function()return z end}
 end
 local function parked(b,slot)
     if not b or not b.loaded or not integer(slot) or slot>3 then return nil end
@@ -164,6 +221,26 @@ local function cursor()
     if g_is_mouse_mode~=false and finite(g_pointer_pos_x) and finite(g_pointer_pos_y)then return g_pointer_pos_x,g_pointer_pos_y end
     return g_cursor_pos_x or frame.w/2,g_cursor_pos_y or frame.h/2
 end
+local airfield_marker_parts={{7,1,2,12},{1,6,14,2},{4,11,8,2}}
+local function airfield_hit_distance(x,y,px,py)
+    local distance=(x-px)^2+(y-py)^2
+    if distance<49 then return distance end
+    -- Include the complete visible glyph and its black edge. Its nose extends
+    -- above the legacy seven-pixel circle around the map anchor.
+    for _,p in ipairs(airfield_marker_parts)do
+        local left,top=x-8+p[1]-1,y-11+p[2]-1
+        if px>=left and px<left+p[3]+2 and py>=top and py<top+p[4]+2 then return distance end
+    end
+end
+local function airfield_at_cursor()
+    local px,py=cursor();local hovered,best=nil,math.huge
+    if px<0 or py<0 or px>=frame.w or py>=frame.h then return nil end
+    for _,b in ipairs(mm_airfields())do
+        local x,y=project(b.x,b.z);local distance=airfield_hit_distance(x,y,px,py)
+        if distance and distance<best then hovered,best=b,distance end
+    end
+    return hovered
+end
 local function colour(r,g,b,a)return color8(r,g,b,a or 255)end
 local function facility_colour(hovered)
     if hovered then return colour(255,255,255) end
@@ -174,9 +251,58 @@ local function airfield_marker(x,y,c)
     -- The hub is a 16px team-coloured silhouette with a one-pixel black edge.
     -- Draw an owned aircraft silhouette in that same style and anchor. The
     -- production-category icon is only 8px and is not a facility marker.
-    local parts={{7,1,2,12},{1,6,14,2},{4,11,8,2}}
-    for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1]-1,y-11+p[2]-1,p[3]+2,p[4]+2,colour(0,0,0))end
-    for _,p in ipairs(parts)do update_ui_rectangle(x-8+p[1],y-11+p[2],p[3],p[4],c)end
+    for _,p in ipairs(airfield_marker_parts)do update_ui_rectangle(x-8+p[1]-1,y-11+p[2]-1,p[3]+2,p[4]+2,colour(0,0,0))end
+    for _,p in ipairs(airfield_marker_parts)do update_ui_rectangle(x-8+p[1],y-11+p[2],p[3],p[4],c)end
+end
+-- Owned six-pixel glyphs: fixed dimensions independent of other mods' atlases.
+local parked_glyphs={
+    wing_light={'..##..','..##..','######','..##..','..##..','.####.'},
+    wing_heavy={'..##..','.####.','######','######','..##..','.#..#.'},
+    rotor_light={'######','..##..','.####.','..##..','..##..','.####.'},
+    rotor_heavy={'##..##','.####.','.####.','..##..','..##..','.####.'},
+}
+local function parked_shape(definition)
+    if definition==e_game_object_type.chassis_air_wing_heavy then return parked_glyphs.wing_heavy end
+    if definition==e_game_object_type.chassis_air_rotor_light then return parked_glyphs.rotor_light end
+    if definition==e_game_object_type.chassis_air_rotor_heavy then return parked_glyphs.rotor_heavy end
+    return parked_glyphs.wing_light
+end
+function mm_parked_aircraft(b)
+    local aircraft,seen={},{}
+    if not b or not b.loaded or type(get_chassis_data_by_definition_index)~='function'then return aircraft end
+    for slot,id in ipairs(b.slots)do if id>0 and not seen[id]then
+        seen[id]=true
+        local v=update_get_map_vehicle_by_id(id)
+        if mm_is_parked_at_airfield(v) and v:get_id()==id and v:get_team()==update_get_screen_team_id()then
+            local definition=v:get_definition_index()
+            local name=get_chassis_data_by_definition_index(definition)
+            aircraft[slot]={id=id,name=name or 'Aircraft',definition=definition,shape=parked_shape(definition)}
+        end
+    end end
+    return aircraft
+end
+local function parked_markers(b,x,y,px,py)
+    if x<0 or y<0 or x>=frame.w or y>=frame.h then return end
+    local aircraft=mm_parked_aircraft(b)
+    -- Bay order: 1 2 / 3 4. Empty bays keep their cell; never pack occupied ones.
+    -- Four 6x6 glyphs at an 8px pitch: 14x14, 15x15 including the dark edge.
+    local left=x-26;if left<2 then left=x+12 end
+    left=math.floor(math.max(2,math.min(frame.w-17,left))+.5)
+    local top=math.floor(math.max(2,math.min(frame.h-17,y-12))+.5)
+    for slot=1,4 do local a=aircraft[slot]
+        if a then
+            local ix,iy=left+((slot-1)%2)*8,top+math.floor((slot-1)/2)*8
+            for pass=1,2 do local offset=pass==1 and 1 or 0
+                local c=pass==1 and colour(0,0,0,180) or colour(72,72,72)
+                for row,bits in ipairs(a.shape)do
+                    for first,last in bits:gmatch('()#+()')do
+                        update_ui_rectangle(ix+first-1+offset,iy+row-1+offset,last-first,1,c)
+                    end
+                end
+            end
+            if px>=ix and px<ix+6 and py>=iy and py<iy+6 then frame.traffic_hint='Parked: '..a.name end
+        end
+    end
 end
 local function map_link(x,y,tx,ty,c)
     if not finite(x) or not finite(y) or not finite(tx) or not finite(ty)then return end
@@ -201,12 +327,13 @@ local function map_link(x,y,tx,ty,c)
 end
 function mm_draw_airfields(w,h,holomap)
     frame.visible,frame.holomap,frame.w,frame.h,frame.hover=true,holomap,w,h,nil
-    local px,py=cursor();local best=49;local positions,arrivals={},{}
+    local px,py=cursor();local best=math.huge;local positions,arrivals={},{}
     frame.traffic_hint=nil
     for _,b in ipairs(mm_airfields())do
-        local x,y=project(b.x,b.z);local dx,dy=x-px,y-py;local distance=dx*dx+dy*dy
-        if distance<best then frame.hover,best=b,distance end
-        airfield_marker(x,y,facility_colour(distance<49))
+        local x,y=project(b.x,b.z);local distance=airfield_hit_distance(x,y,px,py)
+        if distance and distance<best then frame.hover,best=b,distance end
+        airfield_marker(x,y,facility_colour(distance~=nil))
+        parked_markers(b,x,y,px,py)
         positions[b.tile]={x=x,y=y}
     end
     for i=0,update_get_map_vehicle_count()-1 do
@@ -218,8 +345,8 @@ function mm_draw_airfields(w,h,holomap)
                 if tid then
                     arrivals[tid]=(arrivals[tid] or 0)+1
                     local destination=positions[tid]
-                    if destination then map_link(x,y,destination.x,destination.y,c)end
-                    local label=stage==2 and 'QUEUE' or (stage==3 and 'HOLD' or (stage==5 and 'TAXI' or 'LAND'))
+                    if destination and stage~=6 then map_link(x,y,destination.x,destination.y,c)end
+                    local label=stage==6 and 'ROUTE' or (stage==2 and 'QUEUE' or (stage==3 and 'HOLD' or (stage==5 and 'TAXI' or 'LAND')))
                     if x>=0 and x<frame.w and y>=0 and y<frame.h then
                         update_ui_text(math.min(x+7,frame.w-34),math.max(0,y-10),label,34,0,c,0)
                     end
@@ -541,7 +668,8 @@ local original_update,original_event=update,input_event
 if type(original_update)=='function'then
     function update(w,h,ticks)
         frame.visible,frame.hover=false,nil;frame.w,frame.h=w,h;frame.number=(frame.number or 0)+1
-        clear_parked_map_selection()
+        local okay,err=pcall(clear_parked_map_selection)
+        if not okay then parking_warning(err)end
         original_update(w,h,ticks)
         result(ticks)
         if frame.visible then panel()else close();ui.route=nil end
@@ -589,13 +717,17 @@ if type(original_event)=='function'then
                     ui.suppress_release=event
                     g_is_pointer_pressed=false;return
                 end
-            elseif frame.hover and (event==e_input.pointer_1 or event==e_input.action_a)then
-                local b=frame.hover;local id=g_drag and g_drag.vehicle_id or 0
-                if not pressed and id>0 then
-                    if mm_issue_landing(update_get_map_vehicle_by_id(id),b)then
-                        if type(g_drag.clear)=='function'then g_drag:clear()end;g_is_pointer_pressed=false;return
-                    end
-                elseif pressed then mm_open_airfield(b.tile,b.index);g_is_pointer_pressed=false;return end
+            elseif event==e_input.pointer_1 or event==e_input.action_a then
+                -- A pointer can move between update and release. Resolve the
+                -- actual hit now; a cached hover can target another island.
+                local b=airfield_at_cursor();local id=g_drag and g_drag.vehicle_id or 0
+                if b then
+                    if not pressed and id>0 then
+                        if mm_issue_landing(update_get_map_vehicle_by_id(id),b,g_drag.waypoint_id)then
+                            if type(g_drag.clear)=='function'then g_drag:clear()end;g_is_pointer_pressed=false;return
+                        end
+                    elseif pressed then mm_open_airfield(b.tile,b.index);g_is_pointer_pressed=false;return end
+                end
             end
         end
         return original_event(event,action)

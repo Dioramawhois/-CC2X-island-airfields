@@ -18,6 +18,7 @@ end
 function M.new(cc2, settings)
     local W, F, P = cc2.world, cc2.world.fields, {}
     local generation, pending, flights, locks, plans, plan_order = 0, {}, {}, {}, {}, {}
+    local routing = {}
     local now = 0
     local site_queue,site_seen,site_revision = {},{},0
     local restored = false
@@ -51,6 +52,7 @@ function M.new(cc2, settings)
         if current == 0 then return false end
         if current ~= generation then
             generation, pending, flights, locks, plans, plan_order = current, {}, {}, {}, {}, {}
+            routing={}
             publish('active', 0, 1); publish('planes', 0, settings.planes and 1 or 0); publish('protocol', 0, 2)
             site_queue,site_seen,site_revision={},{},0
             restored=false
@@ -94,6 +96,22 @@ function M.new(cc2, settings)
     end
     local function landing_status(vid,tid,stage)
         publish('landing',vid,tid);publish('landing_stage',vid,stage)
+    end
+    local function route_landing(v)
+        local n=count(v,'VEHICLE_WAYPOINTS')
+        if n>256 then return nil end
+        for k=0,n-1 do local wp=ref(v,'VEHICLE_WAYPOINTS',k)
+            if wp and gi(wp,'WAYPOINT_TYPE')==field('WAYPOINT_BARGE_LOAD_TILE')then
+                local tid=gi(wp,'WAYPOINT_PARAM');local t=tile(tid)
+                if t and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM')then return tid,k,wp end
+                return nil
+            end
+        end
+    end
+    local function queue_route(v,tid)
+        local vid=id(v)
+        if not routing[vid] and #sorted_keys(routing)>=32 then return false end
+        routing[vid]=tid;landing_status(vid,tid,6);return true
     end
     local function do_land(v, i, explicit_publish,tid)
         cleanup(i)
@@ -436,12 +454,24 @@ function M.new(cc2, settings)
         local wp=ref(v,'VEHICLE_WAYPOINTS',0)
         local origin=cc2.orders.current()
         if not origin or origin.vehicle_id~=vid or not origin.broadcast_pending then
-            move(wp);publish('request_result',vid,0);return
+            -- Native progress cannot invalidate an already authenticated future
+            -- landing. New unattributed typed orders remain refused.
+            if not routing[vid]then
+                for k=0,math.min(count(v,'VEHICLE_WAYPOINTS'),256)-1 do move(ref(v,'VEHICLE_WAYPOINTS',k))end
+                publish('request_result',vid,0)
+            end
+            return
         end
+        routing[vid]=nil
         pending[vid]=nil
         if not wp then cancel(v);landing_status(vid,0,0);return end
         if dock(v)==field('DOCK_DOCKED') then if gi(v,'VEHICLE_ATTACHED_TO')==0 then takeoff(v,wp) end;return end
-        if gi(wp,'WAYPOINT_TYPE')~=field('WAYPOINT_BARGE_LOAD_TILE') then cancel(v);landing_status(vid,0,0);return end
+        if gi(wp,'WAYPOINT_TYPE')~=field('WAYPOINT_BARGE_LOAD_TILE') then
+            cancel(v)
+            local tid=route_landing(v)
+            if not tid or not queue_route(v,tid)then landing_status(vid,0,0)end
+            return
+        end
         cancel(v)
         local tid=gi(wp,'WAYPOINT_PARAM');local result=land(v,tid,false);publish('request_result',vid,result)
         print(('vehicle %d: landing request tile %d peer %d result %d'):format(vid,tid,origin.peer_id,result))
@@ -536,10 +566,11 @@ function M.new(cc2, settings)
                         local t=tile(target)
                         if t and gi(t,'TILE_TEAM')==gi(v,'VEHICLE_TEAM')then landing_status(record.id,target,state==field('DOCK_QUEUED') and 2 or 4)end
                     elseif state==field('DOCK_UNDOCKED')then
-                        local wp=ref(v,'VEHICLE_WAYPOINTS',0)
-                        if wp and gi(wp,'WAYPOINT_TYPE')==field('WAYPOINT_BARGE_LOAD_TILE')then
-                            local result=land(v,gi(wp,'WAYPOINT_PARAM'),true)
+                        local tid,index,wp=route_landing(v)
+                        if tid and index==0 then
+                            local result=land(v,tid,true)
                             if result==0 then move(wp);v:waypoints_sync()end
+                        elseif tid then queue_route(v,tid)
                         end
                     end
                 end
@@ -552,6 +583,20 @@ function M.new(cc2, settings)
             end
         end
         discover_site()
+        for _,vid in ipairs(sorted_keys(routing))do
+            local v=vehicle(vid);local tid=routing[vid];local t=tile(tid)
+            if not v or not human(v) or not air(v) or dock(v)~=field('DOCK_UNDOCKED') or
+               not t or gi(t,'TILE_TEAM')~=gi(v,'VEHICLE_TEAM')then
+                routing[vid]=nil
+            else
+                local wp=ref(v,'VEHICLE_WAYPOINTS',0)
+                if wp and gi(wp,'WAYPOINT_TYPE')==field('WAYPOINT_BARGE_LOAD_TILE') and gi(wp,'WAYPOINT_PARAM')==tid then
+                    routing[vid]=nil
+                    local result=land(v,tid,true);publish('request_result',vid,result)
+                    if result==0 then move(wp);v:waypoints_sync();landing_status(vid,0,0)end
+                elseif now%8==0 and route_landing(v)~=tid then routing[vid]=nil;landing_status(vid,0,0)end
+            end
+        end
         if now%8==0 then for _,vid in ipairs(sorted_keys(pending)) do
             local v,t=vehicle(vid),tile(pending[vid])
             if not v or not human(v) or not air(v) or dock(v)~=field('DOCK_UNDOCKED') or not t or gi(t,'TILE_TEAM')~=gi(v,'VEHICLE_TEAM') then pending[vid]=nil
@@ -565,6 +610,7 @@ function M.new(cc2, settings)
     function P.unload()
         for _,vid in ipairs(sorted_keys(flights)) do local f=flights[vid];local v,af=vehicle(vid),airfield(f.tid,f.index);if v and af then hand_back(f,af,v) end end
         pending,flights,locks,plans,plan_order={},{},{},{},{};publish('active',0,0)
+        routing={}
     end
     return P
 end

@@ -1,18 +1,20 @@
 # Island Airfields
 
-**2.2.1-client-beta.1** is the client beta release of the separate Lua addon for stock Carrier Command 2 and
-**Revolution 1.6-19 and 1.6-20**. Loadout changes require **CC2X equipment support**. The parking-display update
+**2.2.2-client-beta.1** is the client beta release of the separate Lua addon for stock Carrier Command 2 and
+**Revolution 1.6-19 and 1.6-20**. Loadout changes require **CC2X equipment support**. This landing-order update
 does not require a new SDK DLL. Workshop
 identity [3826940003](https://steamcommunity.com/sharedfiles/filedetails/?id=3826940003)
 is retained.
 
-[Download 2.2.1 client beta 1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.1-client-beta.1)
+[Download 2.2.2 client beta 1](https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.2-client-beta.1)
 with [CC2X SDK](https://steamcommunity.com/sharedfiles/filedetails/?id=3833014670).
 
 Fully parked island aircraft disappear from the vehicle-control map and active
 unit lists, while remaining available through their airfield bays. Aircraft
 waiting to land stay visible; departing aircraft reappear when launch begins.
-The native holomap background is unchanged.
+Small dark-grey aircraft silhouettes beside the airfield show occupied bays in
+a fixed 2x2 grid; empty bays retain their positions. The native holomap background
+is unchanged.
 
 Click the airfield icon for four aircraft bays, then click a parked aircraft to
 open its loadout directly. Select hardpoints on the **same graphical widget used
@@ -20,11 +22,17 @@ by the carrier**, and choose compatible equipment by its picture. A separate
 **Launch** button at the bottom returns to the map for the destination.
 
 Landing is issued on the map by dragging the aircraft onto the airfield icon;
-there is no landing menu button. Ordinary ground waypoints remain movement
+this replaces its previous route, as before. To queue landing after movement
+or attacks, drag the final route point onto the airfield icon instead: earlier
+points and their attack orders remain. There is no landing menu button.
+The terminal waypoint and its route line attach to the actual airfield icon,
+instead of the island centre. The complete visible silhouette and black edge
+accept landing drops, including the nose. Landing starts after the preceding
+route points; future arrivals show ROUTE until then.
+Ordinary ground waypoints remain movement
 orders. Equipment changes remain free and newly fitted attachments start full.
 Arrival links and QUEUE/HOLD/LAND statuses remain available after save/reload.
-The owner confirmed three-arrival reload and equipment changes, tested the
-graphical revision and approved this client beta for release. [Landing persistence](docs/LANDING_SAVE_RELOAD.md).
+[Landing persistence](docs/LANDING_SAVE_RELOAD.md).
 
 The host runs the flight policy through public SDK APIs. The mod has no private
 gameplay DLL and contains no Revolution files or complete game screens.
@@ -67,8 +75,10 @@ The release passes owned real-Lua UI/callback and loadout-policy fixtures,
 actual-SDK synthetic flight regressions, syntax-only screen delivery for stock
 and both reviewed Revolution versions, and packaging safety checks. The SDK's
 native equipment path also passes static checks against the exact executable.
-The owner confirmed beta 4 save/reload with three arrivals and equipment changes
-in an ordinary-host game. The graphical beta 5 update subsequently received owner release approval.
+On 2026-11-08, the owner accepted this candidate in an ordinary combined
+CC2 ModLoader run with eight enabled mods and authorized release. The installed
+SDK 0.11 runtime was retained. Earlier owner checks confirmed three-arrival
+save/reload, equipment changes and the graphical aircraft editor.
 The carrier-widget adapter also has owned substitute tests and static interface
 inspection for stock and both Revolution versions. Remote multiplayer and dedicated servers remain
 unverified.

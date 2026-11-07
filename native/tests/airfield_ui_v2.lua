@@ -11,6 +11,7 @@ local data={{tile=10,index=0,x=900,z=200,runway_start_x=800,runway_start_z=100,
 local islands={}
 islands[10]={get=function()return true end,get_id=function()return 10 end,
  get_team_control=function()return team end,get_difficulty_level=function()return 2 end,
+ get_position_xz=function()return point(-4000,-5000)end,
  get_command_center_count=function()return 1 end,get_command_center_position=function()return point(-4000,-5000)end}
 function update_get_screen_team_id()return 1 end
 function update_get_tile_by_id(id)return islands[id]end
@@ -29,7 +30,9 @@ local function vehicle(id,state)
  function v:get_dock_queue_vehicle_id()return 0 end
  function v:get_waypoint_count()return #self.orders end
  function v:clear_waypoints()self.orders={}end
- function v:clear_attack_target()end
+ function v:clear_attack_target()self.attack_clears=(self.attack_clears or 0)+1 end
+ function v:get_waypoint_by_id(id)return {get=function()return self.orders[id]~=nil end}end
+ function v:clear_waypoints_from(id)for i=#self.orders,id,-1 do table.remove(self.orders,i)end end
  function v:add_waypoint(x,z)self.orders[#self.orders+1]={x=x,z=z};return #self.orders end
  function v:set_waypoint_type_barge_load_tile(i,t)self.orders[i].tile=t end
  function v:get_attachment_count()return 2 end
@@ -54,7 +57,50 @@ local bases=mm_airfields()
 assert(#bases==1 and bases[1].x==900 and bases[1].z==200,'marker must use the runway midpoint')
 assert(#bases[1].slots==4 and bases[1].slots[1]==21 and bases[1].slots[3]==0)
 assert(mm_issue_landing(v,bases[1]))
-assert(#v.orders==1 and v.orders[1].tile==10 and v.orders[1].x==900)
+assert(#v.orders==1 and v.orders[1].x==900 and v.orders[1].z==200 and v.orders[1].tile==10 and v.attack_clears==1,
+ 'aircraft-body drag did not restore the accepted new-landing replacement')
+v.orders={};mm_add_waypoint(v,-4000,-5000);mm_add_waypoint(v,-3900,-4900);mm_add_waypoint(v,0,0)
+local first_order=v.orders[1];first_order.attacks={target=77,weapon='missile'}
+assert(mm_issue_landing(v,bases[1],3))
+assert(#v.orders==3 and v.orders[1].x==-4000 and v.orders[2].x==-3900 and v.orders[3].tile==10,
+ 'queued landing overwrote earlier movement orders')
+assert(v.attack_clears==1,'queued landing cleared an existing attack')
+assert(v.orders[1]==first_order and first_order.attacks.target==77,'earlier waypoint attack was overwritten')
+v.orders[3].tile=nil;mm_add_waypoint(v,123,456)
+assert(mm_issue_landing(v,bases[1],4))
+assert(#v.orders==4 and v.orders[3].x==900 and v.orders[4].tile==10,'dragged final waypoint destroyed its prefix')
+assert(not mm_issue_landing(v,bases[1],99) and #v.orders==4,'invalid dragged waypoint changed the route')
+-- Native typed tile waypoints report the island centre, not their raw x/z.
+-- The map endpoint must use the authorized airfield without changing the token.
+e_waypoint_type={move=0,barge_load_tile=4}
+local island_centre=point(-4000,-5000)
+local typed={get_type=function()return e_waypoint_type.barge_load_tile end,
+ get_position_xz=function()return island_centre end}
+local anchored=mm_waypoint_position(v,typed)
+assert(anchored:x()==900 and anchored:y()==200,'terminal landing marker remained at the island centre')
+assert(mm_is_airfield_landing_waypoint(v,typed),'valid typed landing cannot be selected at the field')
+local mismatched={get_type=typed.get_type,get_position_xz=function()return point(7000,8000)end}
+local foreign_position=mismatched:get_position_xz()
+mismatched.get_position_xz=function()return foreign_position end
+assert(mm_waypoint_position(v,mismatched)==foreign_position and not mm_is_airfield_landing_waypoint(v,mismatched),
+ 'a differently targeted token inherited the landing metadata destination')
+local ordinary={get_type=function()return e_waypoint_type.move end,
+ get_position_xz=function()return island_centre end}
+assert(mm_waypoint_position(v,ordinary)==island_centre,'normal waypoint was snapped to an airfield')
+assert(not mm_is_airfield_landing_waypoint(v,ordinary),'normal waypoint gained landing-specific hit handling')
+local barge=setmetatable({get_definition_index=function()return 99 end},{__index=v})
+assert(mm_waypoint_position(barge,typed)==island_centre,'barge loading was redirected to the airfield')
+local previous_read=cc2x.modules.read
+g_mm_landing_orders={}
+cc2x.modules.read=function(owner,topic,subject)
+ if topic=='landing'then return 10 end
+ return previous_read(owner,topic,subject)
+end
+anchored=mm_waypoint_position(v,typed)
+assert(anchored:x()==900 and anchored:y()==200,'fresh screen lost the saved landing marker attachment')
+cc2x.modules.read=previous_read
+assert(mm_waypoint_position(v,typed)==island_centre,'unknown landing intent guessed an airfield')
+g_mm_landing_orders[v:get_id()]=10
 assert(mm_launch(10,0,0,1200,1500))
 assert(aircraft[21].orders[1].x==1200 and aircraft[21].orders[1].tile==nil)
 assert(not mm_launch(10,0,4,1,2),'fifth bay was accepted')
@@ -86,3 +132,18 @@ assert(#distant==1 and distant[1].x==900 and not distant[1].loaded and #distant[
 assert(requested==1 and not mm_launch(10,0,0,1,2),'unloaded field launched or discovery repeated')
 mm_airfields();assert(requested==1)
 print('PASS fresh distant-field discovery without a streamed snapshot; no invented hub position or unloaded launch')
+
+session=4
+cc2x.modules.read=function(_,topic)
+ if topic=='active' or topic=='planes'then return 1 end
+ if topic=='session'then return session end
+ if topic=='landing'then return 10 end
+end
+data={}
+for index=0,1 do data[#data+1]={tile=10,index=index,x=900+index*500,z=200,
+ runway_start_x=800+index*500,runway_start_z=100,
+ runway_end_x=1000+index*500,runway_end_z=300,hangars={0,0,0,0}}end
+assert(#mm_airfields()==2)
+assert(mm_waypoint_position(v,typed)==island_centre and not mm_is_airfield_landing_waypoint(v,typed),
+ 'ambiguous multi-airfield landing chose a marker')
+print('PASS native tile-centre landing marker attachment, exact target agreement, reload metadata and ambiguous-field refusal')

@@ -1,13 +1,15 @@
-[h1]Island Airfields 2.2.1 - Parked Aircraft Display[/h1]
-Aircraft fully parked at island airfields no longer clutter the vehicle-control map or active-unit lists. Access them through the airfield icon and its four hangar bays for graphical loadout changes and launch.
+[h1]Island Airfields 2.2.2 - Landing Waypoint Fix[/h1]
+Drag the final route point onto an airfield to queue landing after your earlier movement and attacks. Its marker and route line now attach to the actual airfield icon instead of the island centre.
 
 [list]
-[*]Hide parked aircraft from map icons, pointer targeting and deployed-unit overview.
-[*]Apply the same rule to Revolution aircraft sidebars, unit walls and box selection, including close map zoom.
-[*]Remove the old parking ring and clear stale map selections after parking.
-[*]Keep landing queues, approach and taxi visible. Departing aircraft return to the map when launch begins.
-[*]Preserve four-bay management, graphical refitting, launch, flight policy and saved orders.
+[*]Accept drops on the complete airfield silhouette and black edge, including its nose.
+[*]Preserve earlier waypoints and their attack orders. Start landing when the landing point reaches the head of the route; saved future arrivals show ROUTE.
+[*]Keep aircraft-body dragging as a new landing order that replaces the previous route. Resolve the destination at release, even if the pointer moved since the last frame.
+[*]Keep native map updates and dragging available if parked-aircraft inspection fails.
+[*]Show parked aircraft as small dark-grey model silhouettes in a fixed 2x2 bay grid beside the airfield.
 [/list]
-[b]No new SDK DLL is required for this update if your installed SDK already supports aircraft refitting.[/b] The native holomap background is unchanged. Stock CC2 and Revolution 1.6-19/1.6-20 remain supported.
+[b]No new SDK DLL is required.[/b] Keep an existing compatible equipment-capable SDK. Stock CC2 and Revolution 1.6-19/1.6-20 remain supported.
 
-[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.1-client-beta.1]Download, source and checksums[/url]
+The owner accepted this candidate in an ordinary combined CC2 ModLoader run with eight enabled mods. Remote clients, dedicated servers and never-streamed marker discovery remain unverified.
+
+[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.2-client-beta.1]Download, source and checksums[/url]

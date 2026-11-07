@@ -1,8 +1,15 @@
-[h1]Island Airfields 2.2.1 - Parked Aircraft Display[/h1]
+[h1]Island Airfields 2.2.2 - Landing Waypoint Fix[/h1]
 Land, refit and launch aircraft from owned island airfields. Separate addon for stock CC2 and Revolution 1.6-19/1.6-20.
+
+[h2]🛬 Landing routes attach to the airfield[/h2]
+Drag the final route point onto the airfield icon to queue landing after movement or attacks. Earlier points and their attack orders remain. The landing waypoint and route line now attach to the actual airfield icon instead of the island centre. Drops work across the complete visible aircraft silhouette and black edge, including the nose.
+
+Landing starts when its explicit waypoint reaches the head of the route. Future arrivals show ROUTE until then and survive save/reload. The destination is resolved at release using the current marker geometry. Dragging the aircraft itself onto the airfield keeps the established replacement action: it clears the previous route and issues a new landing order.
 
 [h2]Parked aircraft belong in the airfield[/h2]
 After completing landing, island aircraft no longer appear as active aircraft on the vehicle-control map. Open the airfield icon to find them in their four hangar bays, change equipment and launch them again. Landing queues remain visible; aircraft reappear when launch begins. Revolution aircraft sidebars, unit walls, pointer targeting and box selection follow the same parking check. The native holomap background is unchanged.
+
+Small dark-grey model silhouettes beside the marker show occupied bays in a fixed 2x2 grid. Empty bays retain their positions; hovering names the model. Queue reservations, taxiing/departing aircraft and stale unloaded data do not appear as parked aircraft. An inspection failure preserves native map updates and dragging.
 
 [b]No additional SDK DLL update is required for this fix if your current installation already supports graphical refitting.[/b]
 
@@ -15,7 +22,7 @@ The separate [b]Launch[/b] button is at the bottom of the aircraft editor. Press
 Replace or clear compatible attachments. Newly fitted attachments start full. No island, warehouse, carrier or barge stock is consumed or refunded. Paid resource accounting is a separate future task. The editor does not create aircraft or change chassis. Pending changes block another refit or launch.
 
 [h2]Explicit landing on the map[/h2]
-[b]Drag an airborne aircraft onto the airfield icon on the vehicle-control map.[/b] There is no landing button or landing list in the airfield window. Ordinary ground waypoints remain movement orders, even beside a runway or at a distant map zoom.
+[b]Drag an airborne aircraft or its final route point onto the airfield icon on the vehicle-control map.[/b] There is no landing button or landing list in the airfield window. Ordinary ground waypoints remain movement orders, even beside a runway or at a distant map zoom.
 
 Airfield and hub markers are separate. The airfield uses its actual facility position when available, with team colour, black edge and hover style matching the hub. The hub retains production actions.
 
@@ -30,12 +37,12 @@ Landing targets remain in native saved data. The host restores arrivals after lo
 [*]Close the game. For a first installation, install the current [b]CC2X SDK[/b] by copying its [b]content/dinput8.dll[/b] beside [b]carrier_command.exe[/b]. Keep a backup of an identified older CC2X runtime; check compatibility before replacing another loader.
 [*]Enable Island Airfields and restart. With Revolution, enable [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3460002110]original Revolution[/url] too.
 [/olist]
-[b]SDK 0.8.1 cannot refit equipment.[/b] Existing compatible SDK installations can be kept for this parking-display update. For first installation and later SDK updates, we recommend [url=https://github.com/Dioramawhois/CC2-ModLoader/releases/tag/latest-beta]CC2 ModLoader[/url], which installs supported SDK versions. Workshop downloads alone do not replace manually installed DLLs.
+[b]SDK 0.8.1 cannot refit equipment.[/b] Aircraft refitting requires the equipment API introduced in SDK 0.9.0-dev. Existing compatible SDK installations can be kept for this landing-order update. For first installation and later SDK updates, we recommend [url=https://github.com/Dioramawhois/CC2-ModLoader/releases/tag/latest-beta]CC2 ModLoader[/url], which installs supported SDK versions. Workshop downloads alone do not replace manually installed DLLs.
 [url=https://github.com/Dioramawhois/Carrier-Command-2-extender/releases]SDK releases, source and checksums[/url]
-[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.1-client-beta.1]Island Airfields release and source[/url]
+[url=https://github.com/Dioramawhois/-CC2X-island-airfields/releases/tag/v2.2.2-client-beta.1]Island Airfields release and source[/url]
 
 [h2]Client beta scope[/h2]
-Windows, reviewed CC2 1.5.18-r2 and stock/Revolution 1.6-19/1.6-20 screen profiles. The owner tested ordinary-host gameplay, explicitly confirmed three-arrival save/reload and equipment changes, and approved the graphical UX update for release. Real-Lua UI/flight/queue and packaging checks pass separately.
+Windows, reviewed CC2 1.5.18-r2 and stock/Revolution 1.6-19/1.6-20 screen profiles. On 2026-11-08, the owner accepted this candidate in an ordinary combined CC2 ModLoader run with eight enabled mods and the existing SDK 0.11 runtime, then authorized release. Earlier owner checks confirmed three-arrival save/reload, equipment changes and the graphical aircraft editor. Real-Lua UI/flight/queue and packaging checks provide separate offline regression evidence.
 
 [b]Known limitation:[/b] exact markers for never-streamed islands may still need an approach; the experimental distant-position API currently refuses unavailable tile definitions. Far-distance native approach behavior is not universally fixed. Remote clients, dedicated servers and broader terrain/physics coverage remain unverified. Remote equipment input is disabled.
 

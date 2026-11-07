@@ -140,9 +140,10 @@ class ScreenProfileGenerationTest(unittest.TestCase):
         self.assertEqual(original[:edit['offset']]+edit['insert'].encode()+
                          original[edit['offset']+edit['remove']:], modified)
 
-    def test_shipped_profiles_retain_reviewed_sources_and_only_insert_map_hooks(self):
-        # Retain every reviewed source identity. All map order call sites now
-        # remain original; only owned drawing/parking guards are inserted.
+    def test_shipped_profiles_retain_reviewed_sources_and_only_change_map_presentation(self):
+        # Retain every reviewed source identity and native order call site.
+        # Position reads use the owned display helper because a native typed
+        # tile waypoint reports the island centre instead of its airfield.
         expected = {
             'scripts/screen_holomap.lua': {
                 '22b31c3892623275e3ea4acfc1b390eac764a7de0a804a6eba0accc9a9173042',
@@ -165,16 +166,42 @@ class ScreenProfileGenerationTest(unittest.TestCase):
             if screen != 'scripts/screen_propulsion.lua':
                 for profile in profiles:
                     for edit in profile['edits']:
-                        self.assertEqual(edit['remove'], 0, 'original map behavior was replaced')
                         self.assertNotIn('add_waypoint', edit['insert'])
-                        self.assertTrue('mm_draw_' in edit['insert'] or
-                                        'mm_is_parked_at_airfield(' in edit['insert'])
+                        if edit['remove']:
+                            self.assertEqual(screen, 'scripts/screen_vehicle_control.lua')
+                            if edit['insert'].startswith('or mm_is_airfield_landing_waypoint('):
+                                condition, position = edit['insert'].splitlines()
+                                self.assertEqual(condition,
+                                    'or mm_is_airfield_landing_waypoint(vehicle, waypoint) then')
+                                self.assertEqual(position.lstrip(),
+                                    'local waypoint_pos = mm_waypoint_position(vehicle, waypoint')
+                                indentation = position[:len(position)-len(position.lstrip())]
+                                self.assertEqual(edit['remove'], len('then\n'+indentation+
+                                    'local waypoint_pos = waypoint:get_position_xz(j'))
+                            else:
+                                expected = {
+                                    'mm_waypoint_position(vehicle, waypoint': {25, 26},
+                                    'mm_waypoint_position(drag_vehicle, drag_waypoint': {30},
+                                }
+                                self.assertIn(edit['insert'], expected)
+                                self.assertIn(edit['remove'], expected[edit['insert']])
+                        else:
+                            self.assertTrue('mm_draw_' in edit['insert'] or
+                                            'mm_is_parked_at_airfield(' in edit['insert'])
         old = '5861884dcb3b2fd8e9a469f7cc7f679193d082d97387b771b5071438d1a6a854'
         new = 'ad7fab1acfdb0c9c3f33fbd32daf9ae1a1c3d5e4920fa2453cf2e48dcc76e95f'
         control = {item['sha256']: item for item in entries['scripts/screen_vehicle_control.lua']['profiles']}
         for digest, profile in control.items():
             guards = sum(edit['insert'].count('mm_is_parked_at_airfield(') for edit in profile['edits'])
             self.assertEqual(guards, 3 if digest.startswith('dc5f291a') else 6)
+            position_reads = [edit for edit in profile['edits'] if edit['remove']]
+            self.assertEqual(len(position_reads), 5)
+            self.assertEqual(sum(edit['insert'].count('mm_waypoint_position(vehicle,')
+                                 for edit in position_reads), 4)
+            self.assertEqual(sum(edit['insert'].startswith('mm_waypoint_position(drag_vehicle,')
+                                 for edit in position_reads), 1)
+            self.assertEqual(sum(edit['insert'].count('mm_is_airfield_landing_waypoint(')
+                                 for edit in position_reads), 1)
         self.assertIn(new, control)
         self.assertNotEqual(control[new]['edits'], control[old]['edits'])
 
